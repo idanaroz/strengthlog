@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strength Training Log</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💪 Strength Training Log</h1>
+            <nav>
+                <button class="nav-btn active" data-section="exercises">Exercises</button>
+                <button class="nav-btn" data-section="workout">Log Workout</button>
+                <button class="nav-btn" data-section="history">History</button>
+                <button class="nav-btn" data-section="settings">Settings</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Exercises Section -->
+            <section id="exercises" class="section active">
+                <div class="section-header">
+                    <h2>Manage Exercises</h2>
+                    <button class="btn btn-primary" id="add-exercise-btn">+ Add Exercise</button>
+                </div>
+                <div class="exercise-list" id="exercise-list">
+                    <!-- Exercises will be populated here -->
+                </div>
+            </section>
+
+            <!-- Workout Logging Section -->
+            <section id="workout" class="section">
+                <div class="section-header">
+                    <h2>Log Workout</h2>
+                    <div class="workout-date">
+                        <label for="workout-date">Date:</label>
+                        <input type="date" id="workout-date" class="date-input">
+                    </div>
+                </div>
+                <div class="workout-form">
+                    <div class="exercise-selector">
+                        <label for="exercise-select">Exercise:</label>
+                        <select id="exercise-select" class="select-input">
+                            <option value="">Select an exercise...</option>
+                        </select>
+                    </div>
+                    <div class="sets-container" id="sets-container">
+                        <!-- Sets will be added here -->
+                    </div>
+                    <div class="workout-notes">
+                        <label for="workout-notes">Notes (optional):</label>
+                        <textarea id="workout-notes" class="textarea-input" rows="3" placeholder="Add notes about your workout (e.g., how you felt, form notes, equipment used...)"></textarea>
+                    </div>
+                    <div class="workout-actions">
+                        <button class="btn btn-secondary" id="add-set-btn">+ Add Set</button>
+                        <button class="btn btn-primary" id="save-workout-btn">Save Workout</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Section -->
+            <section id="history" class="section">
+                <div class="section-header">
+                    <h2>Workout History</h2>
+                    <div class="history-filters">
+                        <select id="exercise-filter" class="select-input">
+                            <option value="">All Exercises</option>
+                        </select>
+                        <input type="date" id="date-from" class="date-input" placeholder="From">
+                        <input type="date" id="date-to" class="date-input" placeholder="To">
+                    </div>
+                </div>
+                <div class="history-list" id="history-list">
+                    <!-- History items will be populated here -->
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings" class="section">
+                <div class="section-header">
+                    <h2>Settings & Data</h2>
+                </div>
+                <div class="settings-content">
+                    <div class="setting-group">
+                        <h3>Data Backup</h3>
+                        <p>Keep your workout data safe by creating regular backups.</p>
+                        <div class="setting-actions">
+                            <button class="btn btn-primary" id="export-btn">Export Data</button>
+                            <input type="file" id="import-file" accept=".json" style="display: none;">
+                            <button class="btn btn-secondary" id="import-btn">Import Data</button>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <h3>Data Management</h3>
+                        <p>Carefully manage your stored data.</p>
+                        <div class="setting-actions">
+                            <button class="btn btn-danger" id="clear-data-btn">Clear All Data</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for adding/editing exercises -->
+    <div id="exercise-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add Exercise</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="exercise-form">
+                    <div class="form-group">
+                        <label for="exercise-name">Exercise Name:</label>
+                        <input type="text" id="exercise-name" class="text-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="exercise-notes">Notes (optional):</label>
+                        <textarea id="exercise-notes" class="textarea-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
