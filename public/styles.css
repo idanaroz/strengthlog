@@ -947,53 +947,370 @@ nav {
     }
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
+/* 📱 MOBILE-FIRST RESPONSIVE DESIGN */
+
+/* iPhone & Small Phones (up to 480px) */
+@media (max-width: 480px) {
     .container {
-        padding: 0 15px;
+        padding: 0 12px;
+        margin: 8px 0;
+    }
+
+    header {
+        margin: 12px 0 24px 0;
+        padding: 20px 0;
+        position: static; /* Remove sticky on very small screens */
     }
 
     header h1 {
-        font-size: 1.5rem;
+        font-size: 1.75rem;
+        margin-bottom: 20px;
+    }
+
+    nav {
+        gap: 6px;
+        padding: 0 4px;
+    }
+
+    .nav-btn {
+        padding: 12px 16px;
+        font-size: 14px;
+        flex: 1;
+        min-width: 0;
+        text-align: center;
+    }
+
+    /* Mobile-optimized sections */
+    .section {
+        padding: 16px;
+        margin-bottom: 16px;
     }
 
     .section-header {
         flex-direction: column;
         align-items: stretch;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .section-header h2 {
+        font-size: 1.5rem;
         text-align: center;
     }
 
-    .nav-btn {
-        flex: 1;
-        min-width: 0;
+    /* Touch-friendly buttons */
+    .btn {
+        padding: 16px 20px;
+        font-size: 16px;
+        min-height: 48px; /* iOS recommended touch target */
+        border-radius: 12px;
     }
 
+    .btn-small {
+        padding: 12px 16px;
+        min-height: 44px;
+        font-size: 14px;
+    }
+
+    /* Mobile workout logging */
     .set-item {
         grid-template-columns: 1fr;
-        gap: 10px;
-        text-align: center;
+        gap: 12px;
+        padding: 16px;
+        text-align: left;
     }
 
+    .set-number {
+        font-size: 1.1rem;
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
+    .set-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .set-input-group label {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .set-input {
+        padding: 16px;
+        font-size: 18px;
+        border-radius: 10px;
+        min-height: 52px;
+    }
+
+    /* Mobile forms */
+    .text-input,
+    .select-input,
+    .textarea-input {
+        padding: 16px;
+        font-size: 16px; /* Prevents zoom on iOS */
+        border-radius: 10px;
+        min-height: 52px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        margin-bottom: 8px;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    /* Mobile history */
     .history-filters {
         grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 12px;
     }
 
     .history-filters-container {
-        padding: 20px;
-        margin-bottom: 24px;
+        padding: 16px;
+        margin-bottom: 20px;
     }
 
-    .workout-actions,
-    .form-actions,
-    .setting-actions {
-        flex-direction: column;
+    .history-item {
+        padding: 16px;
+        margin-bottom: 12px;
     }
 
     .history-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 5px;
+        gap: 8px;
+    }
+
+    .history-actions {
+        width: 100%;
+        justify-content: stretch;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .history-actions .btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    /* Mobile exercise management */
+    .exercise-item {
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+
+    .exercise-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .exercise-actions {
+        width: 100%;
+        justify-content: stretch;
+        gap: 8px;
+    }
+
+    .exercise-actions .btn {
+        flex: 1;
+    }
+
+    /* Mobile settings */
+    .setting-group {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .setting-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* Mobile modal */
+    .modal-content {
+        margin: 5% auto;
+        width: 95%;
+        max-width: none;
+        border-radius: 16px;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    /* Stack form actions vertically on mobile */
+    .workout-actions,
+    .form-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .workout-actions .btn,
+    .form-actions .btn {
+        width: 100%;
+    }
+}
+
+/* 📱 Tablets & Large Phones (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .container {
+        padding: 0 20px;
+        margin: 12px 0;
+    }
+
+    header {
+        padding: 24px 0;
+        margin: 16px 0 32px 0;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+
+    nav {
+        gap: 8px;
+    }
+
+    .nav-btn {
+        padding: 14px 24px;
+        font-size: 15px;
+    }
+
+    .section {
+        padding: 24px;
+    }
+
+    .section-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Tablet-optimized grid layouts */
+    .history-filters {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .set-item {
+        grid-template-columns: auto 1fr 1fr auto;
+        gap: 16px;
+        align-items: center;
+    }
+
+    /* Tablet button layouts */
+    .workout-actions,
+    .form-actions,
+    .setting-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .history-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .history-actions {
+        flex-direction: row;
+        gap: 8px;
+    }
+}
+
+/* 💻 Desktop & Large Tablets (769px+) - Keep existing desktop styles */
+@media (min-width: 769px) {
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 32px;
+    }
+
+    /* Ensure proper desktop layout */
+    .history-filters {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .set-item {
+        grid-template-columns: auto 1fr 1fr auto;
+    }
+}
+
+/* 🎯 Touch & Interaction Improvements */
+@media (hover: none) and (pointer: coarse) {
+    /* Touch device optimizations */
+    .btn:hover {
+        transform: none; /* Disable hover transforms on touch */
+    }
+
+    .btn:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+
+    .nav-btn:active {
+        transform: scale(0.95);
+    }
+
+    /* Larger touch targets */
+    .remove-set {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 12px;
+    }
+
+    .modal-close {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 12px;
+    }
+}
+
+/* 🌅 Mobile Dark Mode Support */
+@media (prefers-color-scheme: dark) and (max-width: 768px) {
+    :root {
+        --bg-color: #0f0f23;
+        --text-color: #e2e8f0;
+        --surface-color: rgba(15, 15, 35, 0.85);
+    }
+}
+
+/* 📐 Mobile Landscape Orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+    header {
+        position: static;
+        margin: 8px 0 16px 0;
+        padding: 16px 0;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+        margin-bottom: 12px;
+    }
+
+    nav {
+        gap: 6px;
+    }
+
+    .nav-btn {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+
+    .section {
+        padding: 16px;
+    }
+
+    /* Optimize for landscape scrolling */
+    .set-item {
+        grid-template-columns: auto 1fr 1fr auto;
+        gap: 12px;
     }
 }
 
@@ -1281,4 +1598,209 @@ nav {
 
 .info-box p:last-child {
     margin-bottom: 0;
+}
+
+/* 🚀 Mobile Performance & UX Enhancements */
+
+/* Smooth scrolling for mobile */
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Better mobile input focus */
+@media (max-width: 768px) {
+    input:focus,
+    textarea:focus,
+    select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        transform: scale(1.02);
+        transition: all 0.2s ease;
+    }
+
+    /* Mobile-optimized workout date picker */
+    .workout-date {
+        margin-bottom: 20px;
+    }
+
+    .workout-date label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 15px;
+    }
+
+    .date-input {
+        width: 100%;
+        padding: 16px;
+        font-size: 16px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: var(--surface-color);
+        min-height: 52px;
+    }
+
+    /* Better mobile exercise selector */
+    .exercise-selector {
+        margin-bottom: 24px;
+    }
+
+    .exercise-selector label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 15px;
+    }
+
+    /* Mobile-optimized workout notes */
+    .workout-notes {
+        margin: 24px 0;
+    }
+
+    .workout-notes label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 15px;
+    }
+
+    /* Better mobile set management */
+    .sets-container {
+        margin: 24px 0;
+    }
+
+    .sets-container h3 {
+        font-size: 1.2rem;
+        margin-bottom: 16px;
+        color: var(--text-color);
+        font-weight: 600;
+    }
+
+    /* Improved mobile messages */
+    .message {
+        margin: 16px -16px; /* Extend to container edges on mobile */
+        border-radius: var(--border-radius-sm) var(--border-radius-sm) var(--border-radius-sm) var(--border-radius-sm);
+        font-size: 15px;
+    }
+
+    /* Mobile modal improvements */
+    .modal.active {
+        display: flex;
+        align-items: flex-start;
+        padding-top: 5vh;
+    }
+
+    .modal-header {
+        padding: 20px 20px 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h3 {
+        font-size: 1.3rem;
+    }
+
+    /* Mobile history enhancements */
+    .history-date {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 4px;
+    }
+
+    .history-exercise {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 8px;
+    }
+
+    .history-sets {
+        margin: 12px 0;
+        padding: 12px;
+        background: var(--glass-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-light);
+    }
+
+    .history-set {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 14px;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .history-set:last-child {
+        border-bottom: none;
+    }
+
+    .history-notes {
+        margin-top: 12px;
+        padding: 12px;
+        background: var(--glass-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-light);
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    /* Mobile exercise item improvements */
+    .exercise-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 8px;
+    }
+
+    .exercise-notes {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin-top: 8px;
+        padding: 8px 0;
+    }
+
+    /* Better mobile loading states */
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    /* Mobile-optimized empty states */
+    .empty-state {
+        padding: 40px 20px;
+        margin: 16px 0;
+    }
+
+    .empty-state h3 {
+        font-size: 1.3rem;
+        margin-bottom: 12px;
+    }
+
+    .empty-state p {
+        font-size: 15px;
+        line-height: 1.6;
+    }
+}
+
+/* 🎨 Mobile Dark Mode Enhancements */
+@media (prefers-color-scheme: dark) and (max-width: 768px) {
+    .info-box {
+        background: linear-gradient(135deg, #4c1d95 0%, #581c87 100%);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .message.success {
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+        color: #d1fae5;
+    }
+
+    .message.error {
+        background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);
+        color: #fecaca;
+    }
 }
