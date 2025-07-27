@@ -4,6 +4,18 @@ class StrengthLog {
         this.exercises = [];
         this.workouts = [];
         this.currentEditingExercise = null;
+        this.currentEditingWorkout = null;
+
+        // GitHub backup settings
+        this.githubSettings = {
+            token: null,
+            username: null,
+            repository: null,
+            enabled: false
+        };
+
+        this.lastBackupTime = null;
+        this.backupInterval = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
         this.init();
     }
@@ -16,35 +28,64 @@ class StrengthLog {
         this.updateWorkoutSelectors();
         this.setDefaultDate();
 
-        // Pre-load initial exercise if empty
-        if (this.exercises.length === 0) {
-            this.addInitialExercise();
-        }
+        // Ensure default exercises exist
+        this.ensureDefaultExercises();
+
+        // Add default set when app loads
+        this.ensureMinimumSets();
     }
 
     // Data Management
     loadData() {
         const savedExercises = localStorage.getItem('strengthlog-exercises');
         const savedWorkouts = localStorage.getItem('strengthlog-workouts');
+        const savedGithubSettings = localStorage.getItem('strengthlog-github-settings');
+        const savedLastBackup = localStorage.getItem('strengthlog-last-backup');
 
         this.exercises = savedExercises ? JSON.parse(savedExercises) : [];
         this.workouts = savedWorkouts ? JSON.parse(savedWorkouts) : [];
+
+        // GitHub settings are now server-managed, no need to load from client
+        // Keep basic structure for backward compatibility
+        this.githubSettings = {
+            enabled: false // Always false since it's server-managed now
+        };
+
+        this.lastBackupTime = savedLastBackup ? new Date(savedLastBackup) : null;
     }
 
     saveData() {
         localStorage.setItem('strengthlog-exercises', JSON.stringify(this.exercises));
         localStorage.setItem('strengthlog-workouts', JSON.stringify(this.workouts));
+        // GitHub settings no longer saved to localStorage since they're server-managed
+        if (this.lastBackupTime) {
+            localStorage.setItem('strengthlog-last-backup', this.lastBackupTime.toISOString());
+        }
+
+        // Check if auto-backup is needed
+        this.checkAutoBackup();
     }
 
-    addInitialExercise() {
-        const initialExercise = {
-            id: this.generateId(),
-            name: 'One Hand Assisted Chin Up',
-            notes: 'Pull-up variation with assistance for building strength toward one-handed chin-ups',
-            dateCreated: new Date().toISOString()
-        };
+    ensureDefaultExercises() {
+        const defaultExercises = [
+            'Right One Hand Assisted Chin Up',
+            'Left One Hand Assisted Chin Up'
+        ];
 
-        this.exercises.push(initialExercise);
+        defaultExercises.forEach(exerciseName => {
+            const exists = this.exercises.some(ex => ex.name === exerciseName);
+            if (!exists) {
+                const newExercise = {
+                    id: this.generateId(),
+                    name: exerciseName,
+                    notes: '',
+                    dateCreated: new Date().toISOString()
+                };
+                this.exercises.push(newExercise);
+            }
+        });
+
+        // Save if we added any new exercises
         this.saveData();
         this.renderExercises();
         this.updateWorkoutSelectors();
@@ -73,26 +114,20 @@ class StrengthLog {
 
         // History Filters
         document.getElementById('exercise-filter').addEventListener('change', () => this.filterHistory());
-        document.getElementById('date-from').addEventListener('change', () => this.filterHistory());
-        document.getElementById('date-to').addEventListener('change', () => this.filterHistory());
+        document.getElementById('year-filter').addEventListener('change', () => this.filterHistory());
+        document.getElementById('month-filter').addEventListener('change', () => this.filterHistory());
 
         // Settings
         document.getElementById('export-btn').addEventListener('click', () => this.exportData());
         document.getElementById('import-btn').addEventListener('click', () => this.importData());
         document.getElementById('import-file').addEventListener('change', (e) => this.handleFileImport(e));
-        document.getElementById('clear-data-btn').addEventListener('click', () => this.clearData());
 
-        // History workout actions
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('edit-workout-btn')) {
-                const workoutId = e.target.getAttribute('data-workout-id');
-                this.editWorkout(workoutId);
-            }
-            if (e.target.classList.contains('delete-workout-btn')) {
-                const workoutId = e.target.getAttribute('data-workout-id');
-                this.deleteWorkout(workoutId);
-            }
-        });
+        // GitHub Backup
+        document.getElementById('save-github-settings-btn').addEventListener('click', () => this.saveGitHubSettings());
+        document.getElementById('backup-now-btn').addEventListener('click', () => this.manualBackup());
+        document.getElementById('restore-backup-btn').addEventListener('click', () => this.manualRestore());
+
+                // History workout actions will be handled by direct listeners in renderHistory
 
         // Modal background click
         document.getElementById('exercise-modal').addEventListener('click', (e) => {
@@ -104,17 +139,204 @@ class StrengthLog {
 
     // Navigation
     switchSection(sectionName) {
+        console.log('Switching to section:', sectionName);
+
+        // Clear any editing states and reset forms when switching sections
+        this.clearSectionState();
+
         // Update nav buttons
         document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+        const activeNavBtn = document.querySelector(`[data-section="${sectionName}"]`);
+        if (activeNavBtn) {
+            activeNavBtn.classList.add('active');
+            console.log('Activated nav button for:', sectionName);
+        } else {
+            console.log('Nav button not found for:', sectionName);
+        }
 
-        // Update sections
-        document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
-        document.getElementById(sectionName).classList.add('active');
+        // Update sections - explicitly hide all sections first
+        document.querySelectorAll('.section').forEach(section => {
+            section.classList.remove('active');
+            section.style.display = 'none'; // Explicitly hide all sections
+        });
 
-        // Update history filters when switching to history
+        // Then show only the active section
+        const activeSection = document.getElementById(sectionName);
+        if (activeSection) {
+            activeSection.classList.add('active');
+            activeSection.style.display = 'block';
+            console.log('Activated section:', sectionName);
+        } else {
+            console.log('Section not found:', sectionName);
+        }
+
+        // Double-check the section is visible
+        setTimeout(() => {
+            const checkSection = document.getElementById(sectionName);
+            if (checkSection) {
+                console.log('Section visibility check:', {
+                    hasActiveClass: checkSection.classList.contains('active'),
+                    display: window.getComputedStyle(checkSection).display,
+                    visibility: window.getComputedStyle(checkSection).visibility
+                });
+            }
+        }, 100);
+
+        // Section-specific initialization
         if (sectionName === 'history') {
-            this.updateHistoryFilters();
+            this.initializeHistorySection();
+        } else if (sectionName === 'workout') {
+            this.initializeWorkoutSection();
+        } else if (sectionName === 'settings') {
+            this.initializeSettingsSection();
+        }
+    }
+
+            // Clear all editing states and reset forms
+    clearSectionState() {
+        // Clear all editing states
+        this.currentEditingExercise = null;
+        this.currentEditingWorkout = null;
+
+        // Close any open modals
+        const modal = document.getElementById('exercise-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+
+        // Clear ALL form inputs across all sections
+        this.clearAllFormInputs();
+
+        // Remove any existing messages
+        const existingMessages = document.querySelectorAll('.message');
+        existingMessages.forEach(msg => msg.remove());
+    }
+
+    // Clear all form inputs across all sections
+    clearAllFormInputs() {
+        // === WORKOUT SECTION ===
+        const exerciseSelect = document.getElementById('exercise-select');
+        const workoutNotes = document.getElementById('workout-notes');
+        const workoutDate = document.getElementById('workout-date');
+        const setsContainer = document.getElementById('sets-container');
+        const saveBtn = document.getElementById('save-workout-btn');
+
+        if (exerciseSelect) exerciseSelect.value = '';
+        if (workoutNotes) workoutNotes.value = '';
+        if (setsContainer) setsContainer.innerHTML = '';
+        if (saveBtn) {
+            saveBtn.textContent = 'Save Workout';
+            saveBtn.style.background = '';
+            saveBtn.disabled = false;
+        }
+        if (workoutDate) {
+            workoutDate.value = new Date().toISOString().split('T')[0];
+        }
+
+        // === HISTORY SECTION FILTERS ===
+        const exerciseFilter = document.getElementById('exercise-filter');
+        const yearFilter = document.getElementById('year-filter');
+        const monthFilter = document.getElementById('month-filter');
+
+        if (exerciseFilter) exerciseFilter.value = '';
+        if (yearFilter) yearFilter.value = '';
+        if (monthFilter) monthFilter.value = '';
+
+        // === EXERCISE MODAL ===
+        const exerciseName = document.getElementById('exercise-name');
+        const exerciseNotes = document.getElementById('exercise-notes');
+        const modalTitle = document.getElementById('modal-title');
+
+        if (exerciseName) exerciseName.value = '';
+        if (exerciseNotes) exerciseNotes.value = '';
+        if (modalTitle) modalTitle.textContent = 'Add Exercise';
+
+        // === SETTINGS SECTION (partially clear for security) ===
+        // Don't clear GitHub settings completely as user might be working on them
+        // But reset any temporary states
+        const backupBtn = document.getElementById('backup-now-btn');
+        const restoreBtn = document.getElementById('restore-backup-btn');
+
+        if (backupBtn) {
+            backupBtn.disabled = false;
+            backupBtn.textContent = 'Backup Now';
+        }
+        if (restoreBtn) {
+            restoreBtn.disabled = false;
+            restoreBtn.textContent = 'Restore from Backup';
+        }
+    }
+
+        // Initialize workout section with clean state
+    initializeWorkoutSection() {
+        // Don't clear form again - it was already cleared in clearSectionState
+        // Just ensure at least one set is present
+        this.ensureMinimumSets();
+
+        // Set focus to exercise selector
+        setTimeout(() => {
+            const exerciseSelect = document.getElementById('exercise-select');
+            if (exerciseSelect) {
+                exerciseSelect.focus();
+            }
+        }, 100);
+    }
+
+    // Initialize history section with clean state
+    initializeHistorySection() {
+        // Update filter options (but don't select anything - filters were cleared)
+        this.updateHistoryFilters();
+
+        // Render all history (since filters are cleared, show everything)
+        this.renderHistory();
+    }
+
+    // Initialize settings section with clean state
+    initializeSettingsSection() {
+        // Update GitHub settings UI (preserves user's settings)
+        this.updateGitHubSettingsUI();
+
+        // Update backup status
+        this.updateBackupStatus();
+    }
+
+
+
+    // Switch to workout section while preserving editing state
+    switchToWorkoutForEdit() {
+        console.log('Switching to workout section for editing');
+
+        // Update nav buttons
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        const activeNavBtn = document.querySelector(`[data-section="workout"]`);
+        if (activeNavBtn) {
+            activeNavBtn.classList.add('active');
+        }
+
+        // Update sections - explicitly hide all sections first
+        document.querySelectorAll('.section').forEach(section => {
+            section.classList.remove('active');
+            section.style.display = 'none'; // Explicitly hide all sections
+        });
+
+        // Then show only the workout section
+        const activeSection = document.getElementById('workout');
+        if (activeSection) {
+            activeSection.classList.add('active');
+            activeSection.style.display = 'block';
+        }
+
+        // Clear existing form data to prepare for editing data population
+        const setsContainer = document.getElementById('sets-container');
+        if (setsContainer) {
+            setsContainer.innerHTML = '';
+        }
+
+        // Reset save button for editing mode
+        const saveBtn = document.getElementById('save-workout-btn');
+        if (saveBtn) {
+            saveBtn.textContent = 'Update Workout';
+            saveBtn.style.background = 'var(--accent-gradient)';
         }
     }
 
@@ -277,10 +499,17 @@ class StrengthLog {
         });
     }
 
+    ensureMinimumSets() {
+        const setsContainer = document.getElementById('sets-container');
+        if (setsContainer.children.length === 0) {
+            this.addSet();
+        }
+    }
+
     saveWorkout() {
         const exerciseId = document.getElementById('exercise-select').value;
         const workoutDate = document.getElementById('workout-date').value;
-        const workoutNotes = document.getElementById('workout-notes').value.trim();
+        const workoutNotesValue = document.getElementById('workout-notes').value.trim();
         const sets = Array.from(document.querySelectorAll('.set-item')).map(setElement => ({
             weight: parseFloat(setElement.querySelector('.weight-input').value) || 0,
             reps: parseInt(setElement.querySelector('.reps-input').value) || 0
@@ -301,22 +530,34 @@ class StrengthLog {
             return;
         }
 
-        const workout = {
-            id: this.generateId(),
-            exerciseId,
-            date: workoutDate,
-            sets,
-            notes: workoutNotes,
-            dateCreated: new Date().toISOString()
-        };
-
         if (this.currentEditingWorkout) {
-            // Update existing workout
+            // Update existing workout - preserve original ID and dateCreated
+            const workout = {
+                id: this.currentEditingWorkout.id,
+                exerciseId,
+                date: workoutDate,
+                sets,
+                notes: workoutNotesValue,
+                dateCreated: this.currentEditingWorkout.dateCreated
+            };
             const index = this.workouts.findIndex(w => w.id === this.currentEditingWorkout.id);
-            this.workouts[index] = workout;
-            this.showMessage('Workout updated successfully', 'success');
+            if (index !== -1) {
+                this.workouts[index] = workout;
+                this.showMessage('Workout updated successfully', 'success');
+            } else {
+                this.showMessage('Error: Could not find workout to update', 'error');
+                return;
+            }
         } else {
             // Add new workout
+            const workout = {
+                id: this.generateId(),
+                exerciseId,
+                date: workoutDate,
+                sets,
+                notes: workoutNotesValue,
+                dateCreated: new Date().toISOString()
+            };
             this.workouts.push(workout);
             this.showMessage('Workout saved successfully', 'success');
         }
@@ -324,51 +565,140 @@ class StrengthLog {
         this.saveData();
         this.renderHistory();
 
-        // Clear the form and reset button
-        document.getElementById('exercise-select').value = '';
-        document.getElementById('sets-container').innerHTML = '';
-        document.getElementById('workout-notes').value = '';
-        this.setDefaultDate();
+                        // Handle navigation after save/update
+        const wasEditing = !!this.currentEditingWorkout;
+
+        // Clear the editing state and form
         this.currentEditingWorkout = null;
 
-        // Reset save button
-        const saveBtn = document.getElementById('save-workout-btn');
-        saveBtn.textContent = 'Save Workout';
-        saveBtn.style.background = '';
+                // Reset workout form to clean state
+        const exerciseSelectElement = document.getElementById('exercise-select');
+        const workoutNotesElement = document.getElementById('workout-notes');
+        const setsContainerElement = document.getElementById('sets-container');
+        const saveBtnElement = document.getElementById('save-workout-btn');
+
+        if (exerciseSelectElement) exerciseSelectElement.value = '';
+        if (workoutNotesElement) workoutNotesElement.value = '';
+        if (setsContainerElement) setsContainerElement.innerHTML = '';
+        if (saveBtnElement) {
+            saveBtnElement.textContent = 'Save Workout';
+            saveBtnElement.style.background = '';
+            saveBtnElement.disabled = false;
+        }
+        this.setDefaultDate();
+
+        // Add default set for next workout
+        this.ensureMinimumSets();
+
+        // If we were editing, redirect back to history to see the changes
+        if (wasEditing) {
+            setTimeout(() => {
+                this.switchSection('history');
+                this.showMessage('Workout updated successfully! You can see your changes in the history below.', 'success');
+            }, 500);
+        }
     }
 
     editWorkout(workoutId) {
-        const workout = this.workouts.find(w => w.id === workoutId);
-        if (!workout) return;
+        console.log('editWorkout called with ID:', workoutId);
+        console.log('Available workouts:', this.workouts.map(w => ({id: w.id, exercise: w.exerciseId})));
 
+        const workout = this.workouts.find(w => w.id === workoutId);
+        if (!workout) {
+            console.log('Workout not found!');
+            this.showMessage('Error: Workout not found', 'error');
+            return;
+        }
+
+        console.log('Found workout:', workout);
+
+        // Set editing state before switching (to prevent it from being cleared)
         this.currentEditingWorkout = workout;
 
-        // Switch to log workout section
-        this.switchSection('log');
+        // Clear section state manually but preserve the editing workout
+        this.currentEditingExercise = null;
 
-        // Populate the form with workout data
-        document.getElementById('workout-date').value = workout.date;
-        document.getElementById('exercise-select').value = workout.exerciseId;
-        document.getElementById('workout-notes').value = workout.notes || '';
+        // Close any open modals
+        const modal = document.getElementById('exercise-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
 
-        // Clear existing sets
-        document.getElementById('sets-container').innerHTML = '';
+        // Remove any existing messages
+        const existingMessages = document.querySelectorAll('.message');
+        existingMessages.forEach(msg => msg.remove());
 
-        // Add sets from the workout
-        workout.sets.forEach((set, index) => {
-            this.addSet();
-            const setElements = document.querySelectorAll('.set-item');
-            const currentSet = setElements[setElements.length - 1];
-            currentSet.querySelector('.weight-input').value = set.weight;
-            currentSet.querySelector('.reps-input').value = set.reps;
-        });
+        // Switch to log workout section (this will now skip clearing currentEditingWorkout)
+        this.switchToWorkoutForEdit();
 
-        // Show editing indicator
-        const saveBtn = document.getElementById('save-workout-btn');
-        saveBtn.textContent = 'Update Workout';
-        saveBtn.style.background = 'var(--accent-gradient)';
+        // Add delay to ensure DOM elements are ready
+        setTimeout(() => {
+            try {
+                console.log('Starting form population...');
 
-        this.showMessage('Editing workout - make your changes and click "Update Workout"', 'success');
+                // Populate the form with workout data
+                const dateInput = document.getElementById('workout-date');
+                const exerciseSelect = document.getElementById('exercise-select');
+                const notesInput = document.getElementById('workout-notes');
+                const setsContainer = document.getElementById('sets-container');
+
+                console.log('Form elements found:', {
+                    dateInput: !!dateInput,
+                    exerciseSelect: !!exerciseSelect,
+                    notesInput: !!notesInput,
+                    setsContainer: !!setsContainer
+                });
+
+                if (dateInput) {
+                    dateInput.value = workout.date;
+                    console.log('Set date to:', workout.date);
+                }
+                if (exerciseSelect) {
+                    exerciseSelect.value = workout.exerciseId;
+                    console.log('Set exercise to:', workout.exerciseId);
+                }
+                if (notesInput) {
+                    notesInput.value = workout.notes || '';
+                    console.log('Set notes to:', workout.notes);
+                }
+
+                // Clear existing sets
+                if (setsContainer) {
+                    setsContainer.innerHTML = '';
+                    console.log('Cleared existing sets');
+                }
+
+                // Add sets from the workout
+                console.log('Adding sets:', workout.sets);
+                workout.sets.forEach((set, index) => {
+                    console.log(`Adding set ${index + 1}:`, set);
+                    this.addSet();
+                    const setElements = document.querySelectorAll('.set-item');
+                    const currentSet = setElements[setElements.length - 1];
+                    if (currentSet) {
+                        const weightInput = currentSet.querySelector('.weight-input');
+                        const repsInput = currentSet.querySelector('.reps-input');
+                        if (weightInput) {
+                            weightInput.value = set.weight;
+                            console.log(`Set weight input to: ${set.weight}`);
+                        }
+                        if (repsInput) {
+                            repsInput.value = set.reps;
+                            console.log(`Set reps input to: ${set.reps}`);
+                        }
+                    }
+                });
+
+                console.log('Form population completed successfully');
+            } catch (error) {
+                console.error('Error in editWorkout:', error);
+                this.showMessage('Error editing workout', 'error');
+            }
+        }, 300);
+
+        setTimeout(() => {
+            this.showMessage('Editing workout - make your changes and click "Update Workout"', 'success');
+        }, 200);
     }
 
     deleteWorkout(workoutId) {
@@ -387,13 +717,35 @@ class StrengthLog {
 
     // History Management
     updateHistoryFilters() {
-        this.updateWorkoutSelectors();  // This updates both selectors
+        const exerciseFilter = document.getElementById('exercise-filter');
+        const yearFilter = document.getElementById('year-filter');
+        const monthFilter = document.getElementById('month-filter');
+
+        // Update exercise filter options
+        exerciseFilter.innerHTML = '<option value="">All Exercises</option>' +
+            this.exercises.map(ex => `<option value="${ex.id}">${this.escapeHtml(ex.name)}</option>`).join('');
+
+        // Get unique years and months from workouts
+        const years = [...new Set(this.workouts.map(w => w.date.substring(0, 4)))].sort().reverse();
+        const yearMonths = [...new Set(this.workouts.map(w => w.date.substring(0, 7)))].sort().reverse();
+
+        // Update year filter
+        yearFilter.innerHTML = '<option value="">All Years</option>' +
+            years.map(year => `<option value="${year}">${year}</option>`).join('');
+
+        // Update month filter
+        monthFilter.innerHTML = '<option value="">All Months</option>' +
+            yearMonths.map(yearMonth => {
+                const [year, month] = yearMonth.split('-');
+                const monthName = new Date(year, month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                return `<option value="${yearMonth}">${monthName}</option>`;
+            }).join('');
     }
 
     filterHistory() {
         const exerciseFilter = document.getElementById('exercise-filter').value;
-        const dateFrom = document.getElementById('date-from').value;
-        const dateTo = document.getElementById('date-to').value;
+        const yearFilter = document.getElementById('year-filter').value;
+        const monthFilter = document.getElementById('month-filter').value;
 
         let filteredWorkouts = [...this.workouts];
 
@@ -401,12 +753,12 @@ class StrengthLog {
             filteredWorkouts = filteredWorkouts.filter(w => w.exerciseId === exerciseFilter);
         }
 
-        if (dateFrom) {
-            filteredWorkouts = filteredWorkouts.filter(w => w.date >= dateFrom);
+        if (yearFilter) {
+            filteredWorkouts = filteredWorkouts.filter(w => w.date.startsWith(yearFilter));
         }
 
-        if (dateTo) {
-            filteredWorkouts = filteredWorkouts.filter(w => w.date <= dateTo);
+        if (monthFilter) {
+            filteredWorkouts = filteredWorkouts.filter(w => w.date.startsWith(monthFilter));
         }
 
         this.renderHistory(filteredWorkouts);
@@ -459,6 +811,47 @@ class StrengthLog {
                 </div>
             `;
         }).join('');
+
+        // Re-attach event listeners after HTML update
+        this.attachHistoryEventListeners();
+    }
+
+        attachHistoryEventListeners() {
+        // Add small delay to ensure DOM is fully rendered
+        setTimeout(() => {
+            const editBtns = document.querySelectorAll('.edit-workout-btn');
+            const deleteBtns = document.querySelectorAll('.delete-workout-btn');
+
+            console.log(`Found ${editBtns.length} edit buttons and ${deleteBtns.length} delete buttons`);
+
+            editBtns.forEach((btn, index) => {
+                if (btn) { // Check if button exists
+                    const workoutId = btn.getAttribute('data-workout-id');
+                    console.log(`Attaching listener to edit button ${index}, workout ID: ${workoutId}`);
+
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Edit button clicked via onclick! Workout ID:', workoutId);
+                        this.editWorkout(workoutId);
+                    };
+                }
+            });
+
+            deleteBtns.forEach((btn, index) => {
+                if (btn) { // Check if button exists
+                    const workoutId = btn.getAttribute('data-workout-id');
+                    console.log(`Attaching listener to delete button ${index}, workout ID: ${workoutId}`);
+
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Delete button clicked via onclick! Workout ID:', workoutId);
+                        this.deleteWorkout(workoutId);
+                    };
+                }
+            });
+        }, 100);
     }
 
     // Data Import/Export
@@ -519,20 +912,7 @@ class StrengthLog {
         e.target.value = '';
     }
 
-    clearData() {
-        if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-            if (confirm('This will permanently delete all exercises and workout history. Continue?')) {
-                this.exercises = [];
-                this.workouts = [];
-                localStorage.removeItem('strengthlog-exercises');
-                localStorage.removeItem('strengthlog-workouts');
-                this.renderExercises();
-                this.renderHistory();
-                this.updateWorkoutSelectors();
-                this.showMessage('All data cleared', 'success');
-            }
-        }
-    }
+
 
     // Utility Functions
     escapeHtml(text) {
@@ -562,7 +942,12 @@ class StrengthLog {
 
         // Insert at the top of the active section
         const activeSection = document.querySelector('.section.active');
-        activeSection.insertBefore(message, activeSection.firstChild);
+        if (activeSection && activeSection.firstChild) {
+            activeSection.insertBefore(message, activeSection.firstChild);
+        } else {
+            // Fallback: append to body if no active section found
+            document.body.appendChild(message);
+        }
 
         // Auto-remove after 3 seconds
         setTimeout(() => {
@@ -570,6 +955,247 @@ class StrengthLog {
                 message.remove();
             }
         }, 3000);
+    }
+
+    // Secure GitHub Backup System (Server-side)
+    async checkAutoBackup() {
+        // Check if backup is configured server-side
+        try {
+            const statusResponse = await fetch('/api/backup-status');
+            const status = await statusResponse.json();
+
+            if (!status.configured) {
+                console.log('Backup not configured on server:', status.message);
+                return;
+            }
+
+            // Auto-backup logic based on localStorage timestamp
+            const now = new Date();
+            const shouldBackup = !this.lastBackupTime ||
+                               (now - this.lastBackupTime) > this.backupInterval;
+
+            if (shouldBackup) {
+                try {
+                    await this.backupToGitHub();
+                    this.showMessage('Data automatically backed up to GitHub', 'success');
+                } catch (error) {
+                    console.error('Auto-backup failed:', error);
+                    this.showMessage('Auto-backup failed - server error', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Could not check backup status:', error);
+        }
+    }
+
+    async backupToGitHub() {
+        const backupData = {
+            exercises: this.exercises,
+            workouts: this.workouts
+        };
+
+        const response = await fetch('/api/backup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(backupData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Backup failed');
+        }
+
+        const result = await response.json();
+
+        this.lastBackupTime = new Date(result.backupDate);
+        localStorage.setItem('strengthlog-last-backup', this.lastBackupTime.toISOString());
+
+        return result;
+    }
+
+    async restoreFromGitHub() {
+        const response = await fetch('/api/backup');
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Restore failed');
+        }
+
+        const result = await response.json();
+        const backupData = result.data;
+
+        // Restore data
+        this.exercises = backupData.exercises || [];
+        this.workouts = backupData.workouts || [];
+        this.saveData();
+
+        // Update UI
+        this.renderExercises();
+        this.renderHistory();
+        this.updateWorkoutSelectors();
+
+        return result.backupDate;
+    }
+
+    async getBackupStatus() {
+        try {
+            const response = await fetch('/api/backup-status');
+            if (!response.ok) {
+                return { status: 'error', message: 'Cannot connect to backup service' };
+            }
+
+            const serverStatus = await response.json();
+
+            if (!serverStatus.configured) {
+                return { status: 'disabled', message: serverStatus.message };
+            }
+
+            if (!this.lastBackupTime) {
+                return { status: 'pending', message: 'No backup yet' };
+            }
+
+            const timeSinceBackup = new Date() - this.lastBackupTime;
+            const hours = Math.floor(timeSinceBackup / (1000 * 60 * 60));
+
+            if (hours < 24) {
+                return { status: 'success', message: `Last backup: ${hours}h ago` };
+            } else {
+                return { status: 'warning', message: `Last backup: ${Math.floor(hours/24)}d ago` };
+            }
+        } catch (error) {
+            return { status: 'error', message: 'Cannot connect to backup service' };
+        }
+    }
+
+
+
+    // GitHub Settings UI Management (Server-side)
+    updateGitHubSettingsUI() {
+        // Hide the manual configuration form since backup is now server-managed
+        const githubSettings = document.querySelector('.github-settings');
+        if (githubSettings) {
+            githubSettings.style.display = 'none';
+        }
+
+        // Update save button to show it's server-managed
+        const saveBtn = document.getElementById('save-github-settings-btn');
+        if (saveBtn) {
+            saveBtn.textContent = 'Server Managed';
+            saveBtn.disabled = true;
+            saveBtn.style.opacity = '0.6';
+        }
+
+        // Show server-managed message
+        const serverManagedDiv = document.createElement('div');
+        serverManagedDiv.className = 'server-managed-notice';
+        serverManagedDiv.innerHTML = `
+            <div class="info-box">
+                <h4>🔒 Secure Server-Side Backup</h4>
+                <p>GitHub backup is now securely managed on the server. Your GitHub token is safely stored as an environment variable and never exposed to the browser.</p>
+                <p>Contact your administrator to configure GitHub backup settings.</p>
+            </div>
+        `;
+
+        // Insert after the GitHub settings header
+        const githubHeader = document.querySelector('h3:contains("GitHub Backup")') ||
+                           Array.from(document.querySelectorAll('h3')).find(h => h.textContent.includes('GitHub Backup'));
+        if (githubHeader && !document.querySelector('.server-managed-notice')) {
+            githubHeader.parentNode.insertBefore(serverManagedDiv, githubSettings);
+        }
+    }
+
+    async updateBackupStatus() {
+        const statusDiv = document.getElementById('backup-status');
+        const status = await this.getBackupStatus();
+
+        const statusClass = {
+            'disabled': 'status-disabled',
+            'error': 'status-error',
+            'pending': 'status-pending',
+            'success': 'status-success',
+            'warning': 'status-warning'
+        }[status.status] || 'status-disabled';
+
+        statusDiv.innerHTML = `
+            <div class="backup-status-indicator ${statusClass}">
+                <span class="status-dot"></span>
+                <span class="status-text">${status.message}</span>
+            </div>
+        `;
+    }
+
+    async saveGitHubSettings() {
+        // Since GitHub settings are now server-managed, this method is disabled
+        this.showMessage('GitHub backup is now managed securely on the server', 'info');
+    }
+
+    async manualBackup() {
+        // Check if backup is configured on server
+        try {
+            const statusResponse = await fetch('/api/backup-status');
+            const status = await statusResponse.json();
+
+            if (!status.configured) {
+                this.showMessage('GitHub backup not configured on server', 'error');
+                return;
+            }
+        } catch (error) {
+            this.showMessage('Cannot connect to backup service', 'error');
+            return;
+        }
+
+        const backupBtn = document.getElementById('backup-now-btn');
+        backupBtn.disabled = true;
+        backupBtn.textContent = 'Backing up...';
+
+        try {
+            await this.backupToGitHub();
+            this.showMessage('Manual backup completed successfully!', 'success');
+            this.updateBackupStatus();
+        } catch (error) {
+            console.error('Manual backup failed:', error);
+            this.showMessage(`Backup failed: ${error.message}`, 'error');
+        } finally {
+            backupBtn.disabled = false;
+            backupBtn.textContent = 'Backup Now';
+        }
+    }
+
+    async manualRestore() {
+        // Check if backup is configured on server
+        try {
+            const statusResponse = await fetch('/api/backup-status');
+            const status = await statusResponse.json();
+
+            if (!status.configured) {
+                this.showMessage('GitHub backup not configured on server', 'error');
+                return;
+            }
+        } catch (error) {
+            this.showMessage('Cannot connect to backup service', 'error');
+            return;
+        }
+
+        if (!confirm('This will replace all your current data with the latest backup from GitHub. Are you sure?')) {
+            return;
+        }
+
+        const restoreBtn = document.getElementById('restore-backup-btn');
+        restoreBtn.disabled = true;
+        restoreBtn.textContent = 'Restoring...';
+
+        try {
+            const backupDate = await this.restoreFromGitHub();
+            this.showMessage(`Data restored from backup created on ${new Date(backupDate).toLocaleDateString()}`, 'success');
+        } catch (error) {
+            console.error('Restore failed:', error);
+            this.showMessage(`Restore failed: ${error.message}`, 'error');
+        } finally {
+            restoreBtn.disabled = false;
+            restoreBtn.textContent = 'Restore from Backup';
+        }
     }
 }
 

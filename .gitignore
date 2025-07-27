@@ -1,0 +1,30 @@
+# GitHub Configuration (contains sensitive token)
+config.js
+
+# Development/Testing files
+auto-clear.html
+clear-cache.html
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Editor files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.backup
+*.bak
+
+# Vercel
+.vercel
+
+# Node modules (if any)
+node_modules/

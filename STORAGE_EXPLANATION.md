@@ -49,8 +49,7 @@ Your data is saved **directly on your computer**, not on an external server. Lik
 ### **🔴 High Risk Situations:**
 1. **Clearing browser history** - if you select "delete all data"
 2. **Uninstalling browser** - if you completely remove Chrome/Firefox
-3. **Manual deletion** - if you click "Clear All Data" in the app
-4. **New computer** - data doesn't transfer automatically
+3. **New computer** - data doesn't transfer automatically
 
 ### **🟡 Low Risk Situations:**
 - **Browser updates** - usually safe

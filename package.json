@@ -1,0 +1,32 @@
+{
+  "name": "strength-training-log",
+  "version": "2.1.0",
+  "description": "A beautiful, modern web application for tracking strength training workouts with secure GitHub backup",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "start": "python3 -m http.server 8000",
+    "build": "echo 'Static files ready for deployment'",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "fitness",
+    "strength-training",
+    "workout-tracker",
+    "progressive-web-app",
+    "vanilla-javascript",
+    "secure-backup",
+    "vercel"
+  ],
+  "author": "idanaroz",
+  "license": "MIT",
+  "homepage": "https://github.com/idanaroz/strengthlog",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/idanaroz/strengthlog.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
