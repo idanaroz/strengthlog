@@ -15,19 +15,19 @@
   ],
   "workouts": [
     {
-      "id": "mdloyw3gpc212rfr8de",
-      "exerciseId": "mdloyam1546fjwznbmg",
+      "id": "mdlozyr3thdhjqk0ze",
+      "exerciseId": "mdloyam1xcz08zfz8vo",
       "date": "2025-07-27",
       "sets": [
         {
-          "weight": 3.7,
-          "reps": 1
+          "weight": 5,
+          "reps": 5
         }
       ],
       "notes": "",
-      "dateCreated": "2025-07-27T13:05:08.860Z"
+      "dateCreated": "2025-07-27T13:05:58.959Z"
     }
   ],
-  "backupDate": "2025-07-27T13:05:16.344Z",
+  "backupDate": "2025-07-27T13:06:04.825Z",
   "version": "1.0"
 }
