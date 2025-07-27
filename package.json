@@ -7,7 +7,15 @@
     "dev": "python3 -m http.server 8000",
     "start": "python3 -m http.server 8000",
     "build": "echo 'Static files ready for deployment'",
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "test": "node test-runner.js",
+    "test:quick": "node test-runner.js --quick",
+    "test:mobile": "node test-runner.js --mobile",
+    "test:sync": "node test-runner.js --sync",
+    "test:all": "node test-runner.js --mobile --sync",
+    "test:browser": "python3 -m http.server 8080 & sleep 2 && open http://localhost:8080/test-suite.html",
+    "pre-deploy": "./pre-deploy.sh",
+    "deploy-safe": "./pre-deploy.sh && git push origin main"
   },
   "keywords": [
     "fitness",
@@ -16,7 +24,9 @@
     "progressive-web-app",
     "vanilla-javascript",
     "secure-backup",
-    "vercel"
+    "vercel",
+    "mobile-optimized",
+    "multi-device-sync"
   ],
   "author": "idanaroz",
   "license": "MIT",
@@ -27,5 +37,7 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "devDependencies": {},
+  "dependencies": {}
 }

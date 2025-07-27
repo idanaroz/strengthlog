@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💪 Strength Log - Behavior Test Suite</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .test-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .test-header h1 {
+            font-size: 2.5rem;
+            margin: 0 0 10px 0;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .test-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .test-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .test-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .test-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .test-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .test-group {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .test-group h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        .test-name {
+            flex: 1;
+            font-size: 14px;
+        }
+        .test-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 60px;
+            text-align: center;
+        }
+        .status-pending { background: rgba(156, 163, 175, 0.3); }
+        .status-running { background: rgba(59, 130, 246, 0.3); animation: pulse 1s infinite; }
+        .status-pass { background: rgba(34, 197, 94, 0.3); }
+        .status-fail { background: rgba(239, 68, 68, 0.3); }
+        .status-skip { background: rgba(245, 158, 11, 0.3); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .test-summary {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .summary-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        .summary-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .summary-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .test-logs {
+            margin-top: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        .test-logs.visible {
+            display: block;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        .log-pass { color: #4ade80; }
+        .log-fail { color: #f87171; }
+        .log-info { color: #60a5fa; }
+        .log-warn { color: #fbbf24; }
+
+        @media (max-width: 768px) {
+            .test-container { padding: 15px; }
+            .test-results { grid-template-columns: 1fr; }
+            .test-controls { flex-direction: column; align-items: center; }
+            .test-summary { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🧪 Behavior Test Suite</h1>
+            <p>Automated testing to ensure your Strength Training Log works perfectly across all devices and scenarios</p>
+        </div>
+
+        <div class="test-controls">
+            <button class="test-btn" id="run-all-tests">🚀 Run All Tests</button>
+            <button class="test-btn" id="run-core-tests">⚡ Core Features</button>
+            <button class="test-btn" id="run-mobile-tests">📱 Mobile Tests</button>
+            <button class="test-btn" id="run-sync-tests">🔄 Sync Tests</button>
+            <button class="test-btn" id="clear-tests">🗑️ Clear Results</button>
+            <button class="test-btn" id="toggle-logs">📋 Toggle Logs</button>
+        </div>
+
+        <div class="test-summary">
+            <div class="summary-item">
+                <div class="summary-number" id="total-tests">0</div>
+                <div class="summary-label">Total Tests</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number status-pass" id="passed-tests">0</div>
+                <div class="summary-label">Passed</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number status-fail" id="failed-tests">0</div>
+                <div class="summary-label">Failed</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number status-skip" id="skipped-tests">0</div>
+                <div class="summary-label">Skipped</div>
+            </div>
+        </div>
+
+        <div class="test-results" id="test-results">
+            <!-- Test results will be populated here -->
+        </div>
+
+        <div class="test-logs" id="test-logs">
+            <div id="log-content"></div>
+        </div>
+    </div>
+
+    <script>
+        class StrengthLogTestSuite {
+            constructor() {
+                this.tests = new Map();
+                this.results = new Map();
+                this.isRunning = false;
+                this.testApp = null;
+                this.originalLocalStorage = {};
+                this.setupTests();
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                document.getElementById('run-all-tests').addEventListener('click', () => this.runAllTests());
+                document.getElementById('run-core-tests').addEventListener('click', () => this.runTestGroup('core'));
+                document.getElementById('run-mobile-tests').addEventListener('click', () => this.runTestGroup('mobile'));
+                document.getElementById('run-sync-tests').addEventListener('click', () => this.runTestGroup('sync'));
+                document.getElementById('clear-tests').addEventListener('click', () => this.clearResults());
+                document.getElementById('toggle-logs').addEventListener('click', () => this.toggleLogs());
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry log-${type}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                document.getElementById('log-content').appendChild(logEntry);
+
+                const logsContainer = document.getElementById('test-logs');
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+
+                console.log(`[Test Suite] ${message}`);
+            }
+
+            toggleLogs() {
+                const logs = document.getElementById('test-logs');
+                logs.classList.toggle('visible');
+            }
+
+            setupTests() {
+                // 🏗️ Core App Functionality Tests
+                this.addTest('core', 'App Initialization', () => this.testAppInitialization());
+                this.addTest('core', 'Navigation System', () => this.testNavigation());
+                this.addTest('core', 'Exercise Management', () => this.testExerciseManagement());
+                this.addTest('core', 'Workout Logging', () => this.testWorkoutLogging());
+                this.addTest('core', 'Data Persistence', () => this.testDataPersistence());
+                this.addTest('core', 'History Display', () => this.testHistoryDisplay());
+                this.addTest('core', 'Export/Import', () => this.testExportImport());
+
+                // 📱 Mobile & Responsive Tests
+                this.addTest('mobile', 'Mobile Viewport', () => this.testMobileViewport());
+                this.addTest('mobile', 'Touch Interactions', () => this.testTouchInteractions());
+                this.addTest('mobile', 'Mobile Forms', () => this.testMobileForms());
+                this.addTest('mobile', 'Responsive Layout', () => this.testResponsiveLayout());
+                this.addTest('mobile', 'Mobile Navigation', () => this.testMobileNavigation());
+
+                // 🔄 Sync & Backup Tests
+                this.addTest('sync', 'Backup API Status', () => this.testBackupStatus());
+                this.addTest('sync', 'Smart Merge Logic', () => this.testSmartMerge());
+                this.addTest('sync', 'Multi-Device Simulation', () => this.testMultiDeviceSync());
+                this.addTest('sync', 'Conflict Resolution', () => this.testConflictResolution());
+                this.addTest('sync', 'Data Integrity', () => this.testDataIntegrity());
+
+                this.renderTestGroups();
+            }
+
+            addTest(group, name, testFn) {
+                if (!this.tests.has(group)) {
+                    this.tests.set(group, []);
+                }
+                this.tests.get(group).push({ name, testFn });
+            }
+
+            async runAllTests() {
+                if (this.isRunning) return;
+                this.isRunning = true;
+                this.log('🚀 Starting comprehensive test suite...', 'info');
+
+                for (const [group, tests] of this.tests) {
+                    await this.runTestGroup(group);
+                }
+
+                this.isRunning = false;
+                this.updateSummary();
+                this.log('✅ All tests completed!', 'pass');
+            }
+
+            async runTestGroup(groupName) {
+                if (!this.tests.has(groupName)) return;
+
+                this.log(`📂 Running ${groupName} tests...`, 'info');
+                const tests = this.tests.get(groupName);
+
+                for (const test of tests) {
+                    await this.runSingleTest(groupName, test);
+                }
+            }
+
+            async runSingleTest(group, test) {
+                const testKey = `${group}:${test.name}`;
+                this.updateTestStatus(testKey, 'running');
+
+                try {
+                    this.log(`🧪 Testing: ${test.name}`, 'info');
+                    await test.testFn();
+                    this.results.set(testKey, 'pass');
+                    this.updateTestStatus(testKey, 'pass');
+                    this.log(`✅ PASS: ${test.name}`, 'pass');
+                } catch (error) {
+                    this.results.set(testKey, 'fail');
+                    this.updateTestStatus(testKey, 'fail');
+                    this.log(`❌ FAIL: ${test.name} - ${error.message}`, 'fail');
+                }
+
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // 🏗️ CORE FUNCTIONALITY TESTS
+
+            async testAppInitialization() {
+                // Test if the main app loads without errors
+                const appFrame = await this.createTestFrame();
+
+                await this.waitForElement(appFrame, '.container', 3000);
+                await this.waitForElement(appFrame, 'header h1', 3000);
+                await this.waitForElement(appFrame, 'nav .nav-btn', 3000);
+
+                const title = appFrame.contentDocument.querySelector('header h1');
+                if (!title || !title.textContent.includes('Strength Training Log')) {
+                    throw new Error('App title not found or incorrect');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testNavigation() {
+                const appFrame = await this.createTestFrame();
+
+                const navButtons = appFrame.contentDocument.querySelectorAll('.nav-btn');
+                if (navButtons.length < 4) {
+                    throw new Error('Navigation buttons missing');
+                }
+
+                // Test clicking each nav button
+                for (const btn of navButtons) {
+                    btn.click();
+                    await new Promise(resolve => setTimeout(resolve, 200));
+
+                    const activeSection = appFrame.contentDocument.querySelector('.section.active');
+                    if (!activeSection) {
+                        throw new Error(`Navigation failed for ${btn.textContent}`);
+                    }
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testExerciseManagement() {
+                const appFrame = await this.createTestFrame();
+
+                // Navigate to exercises section
+                const exercisesBtn = appFrame.contentDocument.querySelector('[data-section="exercises"]');
+                exercisesBtn.click();
+
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // Test add exercise button exists
+                const addBtn = appFrame.contentDocument.querySelector('#add-exercise-btn');
+                if (!addBtn) {
+                    throw new Error('Add exercise button not found');
+                }
+
+                // Test exercise list container exists
+                const exerciseList = appFrame.contentDocument.querySelector('#exercise-list');
+                if (!exerciseList) {
+                    throw new Error('Exercise list container not found');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testWorkoutLogging() {
+                const appFrame = await this.createTestFrame();
+
+                // Navigate to workout section
+                const workoutBtn = appFrame.contentDocument.querySelector('[data-section="workout"]');
+                workoutBtn.click();
+
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // Test workout form elements
+                const exerciseSelect = appFrame.contentDocument.querySelector('#exercise-select');
+                const dateInput = appFrame.contentDocument.querySelector('#workout-date');
+                const addSetBtn = appFrame.contentDocument.querySelector('#add-set-btn');
+                const saveBtn = appFrame.contentDocument.querySelector('#save-workout-btn');
+
+                if (!exerciseSelect || !dateInput || !addSetBtn || !saveBtn) {
+                    throw new Error('Workout form elements missing');
+                }
+
+                // Test add set functionality
+                addSetBtn.click();
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+                const setItems = appFrame.contentDocument.querySelectorAll('.set-item');
+                if (setItems.length === 0) {
+                    throw new Error('Add set functionality not working');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testDataPersistence() {
+                const appFrame = await this.createTestFrame();
+
+                // Test localStorage is being used
+                const localStorage = appFrame.contentWindow.localStorage;
+
+                // Set test data
+                const testData = { test: 'persistence' };
+                localStorage.setItem('test-data', JSON.stringify(testData));
+
+                // Verify it persists
+                const retrieved = JSON.parse(localStorage.getItem('test-data'));
+                if (!retrieved || retrieved.test !== 'persistence') {
+                    throw new Error('localStorage persistence test failed');
+                }
+
+                localStorage.removeItem('test-data');
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testHistoryDisplay() {
+                const appFrame = await this.createTestFrame();
+
+                // Navigate to history section
+                const historyBtn = appFrame.contentDocument.querySelector('[data-section="history"]');
+                historyBtn.click();
+
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // Test history elements
+                const historyList = appFrame.contentDocument.querySelector('#history-list');
+                const filters = appFrame.contentDocument.querySelector('.history-filters');
+
+                if (!historyList || !filters) {
+                    throw new Error('History section elements missing');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testExportImport() {
+                const appFrame = await this.createTestFrame();
+
+                // Navigate to settings
+                const settingsBtn = appFrame.contentDocument.querySelector('[data-section="settings"]');
+                settingsBtn.click();
+
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // Test export/import buttons
+                const exportBtn = appFrame.contentDocument.querySelector('#export-btn');
+                const importBtn = appFrame.contentDocument.querySelector('#import-btn');
+
+                if (!exportBtn || !importBtn) {
+                    throw new Error('Export/Import buttons not found');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            // 📱 MOBILE TESTS
+
+            async testMobileViewport() {
+                const appFrame = await this.createTestFrame();
+
+                // Test viewport meta tag
+                const viewport = appFrame.contentDocument.querySelector('meta[name="viewport"]');
+                if (!viewport || !viewport.content.includes('width=device-width')) {
+                    throw new Error('Mobile viewport meta tag missing or incorrect');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testTouchInteractions() {
+                const appFrame = await this.createTestFrame();
+
+                // Test touch-friendly button sizes
+                const buttons = appFrame.contentDocument.querySelectorAll('.btn');
+                for (const btn of buttons) {
+                    const rect = btn.getBoundingClientRect();
+                    if (rect.height < 44) { // iOS recommended minimum
+                        this.log(`⚠️ Button too small for touch: ${rect.height}px`, 'warn');
+                    }
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testMobileForms() {
+                const appFrame = await this.createTestFrame();
+
+                // Test mobile-optimized inputs
+                const inputs = appFrame.contentDocument.querySelectorAll('input, textarea, select');
+                for (const input of inputs) {
+                    const styles = appFrame.contentWindow.getComputedStyle(input);
+                    const fontSize = parseInt(styles.fontSize);
+
+                    if (fontSize < 16) {
+                        throw new Error(`Input font-size too small (${fontSize}px) - will cause zoom on iOS`);
+                    }
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testResponsiveLayout() {
+                const appFrame = await this.createTestFrame();
+
+                // Test mobile breakpoints
+                appFrame.style.width = '320px'; // iPhone SE
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                const container = appFrame.contentDocument.querySelector('.container');
+                const styles = appFrame.contentWindow.getComputedStyle(container);
+
+                if (parseInt(styles.padding) > 15) {
+                    this.log('⚠️ Mobile padding might be too large', 'warn');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testMobileNavigation() {
+                const appFrame = await this.createTestFrame();
+
+                // Test mobile nav stacking
+                appFrame.style.width = '320px';
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                const nav = appFrame.contentDocument.querySelector('nav');
+                const navButtons = nav.querySelectorAll('.nav-btn');
+
+                // Test that nav buttons work on mobile
+                for (const btn of navButtons) {
+                    btn.click();
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            // 🔄 SYNC TESTS
+
+            async testBackupStatus() {
+                try {
+                    const response = await fetch('/api/backup-status');
+                    if (!response.ok && response.status !== 304) {
+                        throw new Error(`Backup API returned ${response.status}`);
+                    }
+                } catch (error) {
+                    throw new Error(`Backup API not accessible: ${error.message}`);
+                }
+            }
+
+            async testSmartMerge() {
+                const appFrame = await this.createTestFrame();
+                const app = appFrame.contentWindow.app;
+
+                if (!app || typeof app.mergeBackupData !== 'function') {
+                    throw new Error('Smart merge function not found');
+                }
+
+                // Test merge logic with mock data
+                const localData = {
+                    exercises: [{ id: '1', name: 'Push-up', dateCreated: '2023-01-01' }],
+                    workouts: [{ id: 'w1', exerciseId: '1', date: '2023-01-01', dateCreated: '2023-01-01T10:00:00Z' }]
+                };
+
+                const backupData = {
+                    exercises: [
+                        { id: '1', name: 'Push-up', dateCreated: '2023-01-01' }, // Duplicate
+                        { id: '2', name: 'Pull-up', dateCreated: '2023-01-02' }  // New
+                    ],
+                    workouts: [
+                        { id: 'w1', exerciseId: '1', date: '2023-01-01', dateCreated: '2023-01-01T09:00:00Z' }, // Older
+                        { id: 'w2', exerciseId: '2', date: '2023-01-02', dateCreated: '2023-01-02T10:00:00Z' }  // New
+                    ]
+                };
+
+                app.exercises = localData.exercises;
+                app.workouts = localData.workouts;
+
+                const merged = app.mergeBackupData(backupData);
+
+                // Should have 2 exercises (no duplicates)
+                if (merged.exercises.length !== 2) {
+                    throw new Error(`Expected 2 exercises, got ${merged.exercises.length}`);
+                }
+
+                // Should have 2 workouts, keeping newer version of w1
+                if (merged.workouts.length !== 2) {
+                    throw new Error(`Expected 2 workouts, got ${merged.workouts.length}`);
+                }
+
+                const w1 = merged.workouts.find(w => w.id === 'w1');
+                if (w1.dateCreated !== '2023-01-01T10:00:00Z') {
+                    throw new Error('Smart merge did not keep newer workout version');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testMultiDeviceSync() {
+                // Test scenario: Mac has data, iPhone has data, sync should merge
+                const appFrame = await this.createTestFrame();
+                const app = appFrame.contentWindow.app;
+
+                if (!app) {
+                    throw new Error('App not accessible for multi-device test');
+                }
+
+                // Simulate Mac data
+                const macData = {
+                    exercises: [{ id: 'mac1', name: 'Mac Exercise', dateCreated: '2023-01-01' }],
+                    workouts: [{ id: 'mac-w1', exerciseId: 'mac1', date: '2023-01-01', dateCreated: '2023-01-01T10:00:00Z' }]
+                };
+
+                // Simulate iPhone data
+                const iphoneData = {
+                    exercises: [{ id: 'iphone1', name: 'iPhone Exercise', dateCreated: '2023-01-02' }],
+                    workouts: [{ id: 'iphone-w1', exerciseId: 'iphone1', date: '2023-01-02', dateCreated: '2023-01-02T10:00:00Z' }]
+                };
+
+                // Load Mac data locally
+                app.exercises = macData.exercises;
+                app.workouts = macData.workouts;
+
+                // Merge with iPhone backup data
+                const merged = app.mergeBackupData(iphoneData);
+
+                // Should have combined data from both devices
+                if (merged.exercises.length !== 2 || merged.workouts.length !== 2) {
+                    throw new Error('Multi-device sync did not preserve all data');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testConflictResolution() {
+                const appFrame = await this.createTestFrame();
+                const app = appFrame.contentWindow.app;
+
+                if (!app) {
+                    throw new Error('App not accessible for conflict resolution test');
+                }
+
+                // Same workout ID, different timestamps
+                const localData = {
+                    exercises: [],
+                    workouts: [{
+                        id: 'conflict-test',
+                        exerciseId: '1',
+                        date: '2023-01-01',
+                        sets: [{ weight: 50, reps: 10 }],
+                        dateCreated: '2023-01-01T12:00:00Z' // Newer
+                    }]
+                };
+
+                const backupData = {
+                    exercises: [],
+                    workouts: [{
+                        id: 'conflict-test',
+                        exerciseId: '1',
+                        date: '2023-01-01',
+                        sets: [{ weight: 40, reps: 8 }],
+                        dateCreated: '2023-01-01T10:00:00Z' // Older
+                    }]
+                };
+
+                app.exercises = localData.exercises;
+                app.workouts = localData.workouts;
+
+                const merged = app.mergeBackupData(backupData);
+
+                // Should keep the newer local version
+                const resolvedWorkout = merged.workouts.find(w => w.id === 'conflict-test');
+                if (resolvedWorkout.sets[0].weight !== 50) {
+                    throw new Error('Conflict resolution did not keep newer version');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            async testDataIntegrity() {
+                const appFrame = await this.createTestFrame();
+                const app = appFrame.contentWindow.app;
+
+                if (!app) {
+                    throw new Error('App not accessible for data integrity test');
+                }
+
+                // Generate test data
+                const testExercises = [
+                    { id: 'ex1', name: 'Test Exercise 1', dateCreated: '2023-01-01' },
+                    { id: 'ex2', name: 'Test Exercise 2', dateCreated: '2023-01-02' }
+                ];
+
+                const testWorkouts = [
+                    { id: 'w1', exerciseId: 'ex1', date: '2023-01-01', sets: [{ weight: 50, reps: 10 }], dateCreated: '2023-01-01T10:00:00Z' },
+                    { id: 'w2', exerciseId: 'ex2', date: '2023-01-02', sets: [{ weight: 60, reps: 8 }], dateCreated: '2023-01-02T10:00:00Z' }
+                ];
+
+                app.exercises = testExercises;
+                app.workouts = testWorkouts;
+
+                // Test data export/import cycle
+                app.saveData();
+                app.loadData();
+
+                // Verify data integrity after save/load
+                if (app.exercises.length !== 2 || app.workouts.length !== 2) {
+                    throw new Error('Data integrity compromised during save/load cycle');
+                }
+
+                this.cleanupTestFrame(appFrame);
+            }
+
+            // 🛠️ TEST UTILITIES
+
+            async createTestFrame() {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = window.location.origin + '/index.html';
+                document.body.appendChild(iframe);
+
+                return new Promise((resolve) => {
+                    iframe.onload = () => {
+                        resolve(iframe);
+                    };
+                });
+            }
+
+            cleanupTestFrame(iframe) {
+                if (iframe && iframe.parentNode) {
+                    iframe.parentNode.removeChild(iframe);
+                }
+            }
+
+            async waitForElement(frame, selector, timeout = 5000) {
+                const startTime = Date.now();
+
+                while (Date.now() - startTime < timeout) {
+                    const element = frame.contentDocument.querySelector(selector);
+                    if (element) return element;
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                throw new Error(`Element ${selector} not found within ${timeout}ms`);
+            }
+
+            // 🎨 UI MANAGEMENT
+
+            renderTestGroups() {
+                const container = document.getElementById('test-results');
+                container.innerHTML = '';
+
+                for (const [groupName, tests] of this.tests) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'test-group';
+
+                    const groupTitle = document.createElement('h3');
+                    groupTitle.innerHTML = `${this.getGroupIcon(groupName)} ${this.getGroupTitle(groupName)}`;
+                    groupDiv.appendChild(groupTitle);
+
+                    tests.forEach(test => {
+                        const testItem = document.createElement('div');
+                        testItem.className = 'test-item';
+                        testItem.innerHTML = `
+                            <div class="test-name">${test.name}</div>
+                            <div class="test-status status-pending" id="status-${groupName}-${test.name.replace(/\s+/g, '-')}">PENDING</div>
+                        `;
+                        groupDiv.appendChild(testItem);
+                    });
+
+                    container.appendChild(groupDiv);
+                }
+
+                this.updateSummary();
+            }
+
+            getGroupIcon(groupName) {
+                const icons = {
+                    'core': '🏗️',
+                    'mobile': '📱',
+                    'sync': '🔄'
+                };
+                return icons[groupName] || '🧪';
+            }
+
+            getGroupTitle(groupName) {
+                const titles = {
+                    'core': 'Core Functionality',
+                    'mobile': 'Mobile & Responsive',
+                    'sync': 'Sync & Backup'
+                };
+                return titles[groupName] || groupName;
+            }
+
+            updateTestStatus(testKey, status) {
+                const [group, name] = testKey.split(':');
+                const statusId = `status-${group}-${name.replace(/\s+/g, '-')}`;
+                const statusElement = document.getElementById(statusId);
+
+                if (statusElement) {
+                    statusElement.className = `test-status status-${status}`;
+                    statusElement.textContent = status.toUpperCase();
+                }
+            }
+
+            updateSummary() {
+                const totalTests = Array.from(this.tests.values()).reduce((sum, tests) => sum + tests.length, 0);
+                const passedTests = Array.from(this.results.values()).filter(result => result === 'pass').length;
+                const failedTests = Array.from(this.results.values()).filter(result => result === 'fail').length;
+                const skippedTests = totalTests - passedTests - failedTests;
+
+                document.getElementById('total-tests').textContent = totalTests;
+                document.getElementById('passed-tests').textContent = passedTests;
+                document.getElementById('failed-tests').textContent = failedTests;
+                document.getElementById('skipped-tests').textContent = skippedTests;
+            }
+
+            clearResults() {
+                this.results.clear();
+                this.renderTestGroups();
+                document.getElementById('log-content').innerHTML = '';
+                this.log('🗑️ Test results cleared', 'info');
+            }
+        }
+
+        // Initialize test suite when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.testSuite = new StrengthLogTestSuite();
+        });
+    </script>
+</body>
+</html>
