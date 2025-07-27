@@ -1804,3 +1804,87 @@ html {
         color: #fecaca;
     }
 }
+
+/* 📱 Multi-Device Information Section */
+.multi-device-info {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-sm);
+    backdrop-filter: blur(12px);
+}
+
+.multi-device-info h4 {
+    margin: 0 0 12px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.multi-device-info p {
+    margin: 8px 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.multi-device-info ul {
+    margin: 12px 0;
+    padding-left: 0;
+    list-style: none;
+}
+
+.multi-device-info li {
+    margin: 6px 0;
+    padding-left: 20px;
+    color: var(--text-secondary);
+    position: relative;
+    line-height: 1.5;
+}
+
+.multi-device-info li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    background: var(--success-color);
+    border-radius: 50%;
+    opacity: 0.2;
+}
+
+.multi-device-info em {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-style: normal;
+    background: var(--warning-color);
+    background: linear-gradient(135deg, var(--warning-color) 0%, #f59e0b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 500;
+}
+
+/* Mobile optimization for multi-device info */
+@media (max-width: 768px) {
+    .multi-device-info {
+        margin: 16px -16px 0 -16px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    .multi-device-info h4 {
+        font-size: 1rem;
+    }
+
+    .multi-device-info p,
+    .multi-device-info li {
+        font-size: 14px;
+    }
+}

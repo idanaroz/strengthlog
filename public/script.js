@@ -1026,9 +1026,11 @@ class StrengthLog {
         const result = await response.json();
         const backupData = result.data;
 
-        // Restore data
-        this.exercises = backupData.exercises || [];
-        this.workouts = backupData.workouts || [];
+        // Smart merge instead of overwrite
+        const mergedData = this.mergeBackupData(backupData);
+
+        this.exercises = mergedData.exercises;
+        this.workouts = mergedData.workouts;
         this.saveData();
 
         // Update UI
@@ -1037,6 +1039,50 @@ class StrengthLog {
         this.updateWorkoutSelectors();
 
         return result.backupDate;
+    }
+
+    // 🧠 Smart merge logic to prevent data loss
+    mergeBackupData(backupData) {
+        const localExercises = this.exercises || [];
+        const localWorkouts = this.workouts || [];
+        const backupExercises = backupData.exercises || [];
+        const backupWorkouts = backupData.workouts || [];
+
+        // Merge exercises (prevent duplicates by name)
+        const mergedExercises = [...localExercises];
+        backupExercises.forEach(backupExercise => {
+            const exists = localExercises.find(local =>
+                local.name.toLowerCase() === backupExercise.name.toLowerCase()
+            );
+            if (!exists) {
+                mergedExercises.push(backupExercise);
+            }
+        });
+
+        // Merge workouts (prevent duplicates by ID, keep newer timestamps)
+        const mergedWorkouts = [...localWorkouts];
+        backupWorkouts.forEach(backupWorkout => {
+            const existingIndex = localWorkouts.findIndex(local => local.id === backupWorkout.id);
+
+            if (existingIndex === -1) {
+                // New workout, add it
+                mergedWorkouts.push(backupWorkout);
+            } else {
+                // Workout exists, keep the newer one based on dateCreated
+                const localDate = new Date(localWorkouts[existingIndex].dateCreated);
+                const backupDate = new Date(backupWorkout.dateCreated);
+
+                if (backupDate > localDate) {
+                    mergedWorkouts[existingIndex] = backupWorkout;
+                }
+                // Otherwise keep local version (it's newer)
+            }
+        });
+
+        return {
+            exercises: mergedExercises,
+            workouts: mergedWorkouts
+        };
     }
 
     async getBackupStatus() {
@@ -1162,7 +1208,7 @@ class StrengthLog {
         }
     }
 
-    async manualRestore() {
+        async manualRestore() {
         // Check if backup is configured on server
         try {
             const statusResponse = await fetch('/api/backup-status');
@@ -1177,23 +1223,46 @@ class StrengthLog {
             return;
         }
 
-        if (!confirm('This will replace all your current data with the latest backup from GitHub. Are you sure?')) {
-            return;
+        // Smart restore with merge option
+        const hasLocalData = this.exercises.length > 0 || this.workouts.length > 0;
+
+        let confirmed = false;
+        if (hasLocalData) {
+            confirmed = confirm(
+                '🔄 SMART MERGE MODE\n\n' +
+                'This will intelligently merge your local data with the backup:\n' +
+                '• Keeps all unique workouts from both devices\n' +
+                '• Prevents duplicates\n' +
+                '• Preserves newest version of any conflicts\n\n' +
+                'Continue with smart merge?'
+            );
+        } else {
+            confirmed = confirm('This will restore data from your GitHub backup. Continue?');
         }
+
+        if (!confirmed) return;
 
         const restoreBtn = document.getElementById('restore-backup-btn');
         restoreBtn.disabled = true;
-        restoreBtn.textContent = 'Restoring...';
+        restoreBtn.textContent = hasLocalData ? 'Merging...' : 'Restoring...';
 
         try {
             const backupDate = await this.restoreFromGitHub();
-            this.showMessage(`Data restored from backup created on ${new Date(backupDate).toLocaleDateString()}`, 'success');
+
+            if (hasLocalData) {
+                this.showMessage(
+                    `✅ Smart merge completed! Combined data from backup (${new Date(backupDate).toLocaleDateString()}) with your local workouts.`,
+                    'success'
+                );
+            } else {
+                this.showMessage(`Data restored from backup created on ${new Date(backupDate).toLocaleDateString()}`, 'success');
+            }
         } catch (error) {
             console.error('Restore failed:', error);
             this.showMessage(`Restore failed: ${error.message}`, 'error');
         } finally {
             restoreBtn.disabled = false;
-            restoreBtn.textContent = 'Restore from Backup';
+            restoreBtn.textContent = 'Smart Sync';
         }
     }
 }
