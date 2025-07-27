@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strength Training Log</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💪 Strength Training Log</h1>
+            <nav>
+                <button class="nav-btn active" data-section="history">History</button>
+                <button class="nav-btn" data-section="workout">Log Workout</button>
+                <button class="nav-btn" data-section="exercises">Exercises</button>
+                <button class="nav-btn" data-section="settings">Settings</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Exercises Section -->
+            <section id="exercises" class="section">
+                <div class="section-header">
+                    <h2>Manage Exercises</h2>
+                    <button class="btn btn-primary" id="add-exercise-btn">+ Add Exercise</button>
+                </div>
+                <div class="exercise-list" id="exercise-list">
+                    <!-- Exercises will be populated here -->
+                </div>
+            </section>
+
+            <!-- Workout Logging Section -->
+            <section id="workout" class="section">
+                <div class="section-header">
+                    <h2>Log Workout</h2>
+                    <div class="workout-date">
+                        <label for="workout-date">Date:</label>
+                        <input type="date" id="workout-date" class="date-input">
+                    </div>
+                </div>
+                <div class="workout-form">
+                    <div class="exercise-selector">
+                        <label for="exercise-select">Exercise:</label>
+                        <select id="exercise-select" class="select-input">
+                            <option value="">Select an exercise...</option>
+                        </select>
+                    </div>
+                    <div class="sets-container" id="sets-container">
+                        <!-- Sets will be added here -->
+                    </div>
+                    <div class="workout-notes">
+                        <label for="workout-notes">Notes (optional):</label>
+                        <textarea id="workout-notes" class="textarea-input" rows="3" placeholder="Add notes about your workout (e.g., how you felt, form notes, equipment used...)"></textarea>
+                    </div>
+                    <div class="workout-actions">
+                        <button class="btn btn-secondary" id="add-set-btn">+ Add Set</button>
+                        <button class="btn btn-primary" id="save-workout-btn">Save Workout</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Section -->
+            <section id="history" class="section active">
+                <div class="section-header">
+                    <h2>Workout History</h2>
+                </div>
+                <div class="history-filters-container">
+                                            <div class="history-filters">
+                            <div class="filter-group">
+                                <label for="exercise-filter">Exercise</label>
+                                <select id="exercise-filter" class="select-input">
+                                    <option value="">All Exercises</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="year-filter">Year</label>
+                                <select id="year-filter" class="select-input">
+                                    <option value="">All Years</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="month-filter">Month</label>
+                                <select id="month-filter" class="select-input">
+                                    <option value="">All Months</option>
+                                </select>
+                            </div>
+                        </div>
+                </div>
+                <div class="history-list" id="history-list">
+                    <!-- History items will be populated here -->
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings" class="section">
+                <div class="section-header">
+                    <h2>Settings & Data</h2>
+                </div>
+                <div class="settings-content">
+                    <div class="setting-group">
+                        <h3>Data Backup</h3>
+                        <p>Keep your workout data safe by creating regular backups.</p>
+                        <div class="setting-actions">
+                            <button class="btn btn-primary" id="export-btn">Export Data</button>
+                            <input type="file" id="import-file" accept=".json" style="display: none;">
+                            <button class="btn btn-secondary" id="import-btn">Import Data</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <h3>GitHub Backup</h3>
+                        <p>Automatically backup your workout data to GitHub every 24 hours.</p>
+                        <div class="backup-status" id="backup-status">
+                            <!-- Status will be populated by JavaScript -->
+                        </div>
+                        <div class="github-settings">
+                            <div class="form-group">
+                                <label for="github-token">GitHub Personal Access Token:</label>
+                                <input type="password" id="github-token" class="text-input" placeholder="ghp_xxxxxxxxxxxx">
+                                <small>Required permissions: repo (for private repositories)</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="github-username">GitHub Username:</label>
+                                <input type="text" id="github-username" class="text-input" placeholder="your-username">
+                            </div>
+                            <div class="form-group">
+                                <label for="github-repository">Repository Name:</label>
+                                <input type="text" id="github-repository" class="text-input" placeholder="strength-log-backup">
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="github-enabled">
+                                    <span class="checkmark"></span>
+                                    Enable automatic GitHub backups
+                                </label>
+                            </div>
+                        </div>
+                        <div class="setting-actions">
+                            <button class="btn btn-primary" id="save-github-settings-btn">Save GitHub Settings</button>
+                            <button class="btn btn-secondary" id="backup-now-btn">Backup Now</button>
+                            <button class="btn btn-secondary" id="restore-backup-btn">Restore from Backup</button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for adding/editing exercises -->
+    <div id="exercise-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add Exercise</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="exercise-form">
+                    <div class="form-group">
+                        <label for="exercise-name">Exercise Name:</label>
+                        <input type="text" id="exercise-name" class="text-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="exercise-notes">Notes (optional):</label>
+                        <textarea id="exercise-notes" class="textarea-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // GitHub backup is now handled securely server-side
+        // No need to load client-side config files anymore
+        console.log('Using secure server-side GitHub backup');
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
