@@ -13,7 +13,21 @@
       "dateCreated": "2025-07-27T13:04:41.017Z"
     }
   ],
-  "workouts": [],
-  "backupDate": "2025-07-27T13:04:41.017Z",
+  "workouts": [
+    {
+      "id": "mdloyw3gpc212rfr8de",
+      "exerciseId": "mdloyam1546fjwznbmg",
+      "date": "2025-07-27",
+      "sets": [
+        {
+          "weight": 3.7,
+          "reps": 1
+        }
+      ],
+      "notes": "",
+      "dateCreated": "2025-07-27T13:05:08.860Z"
+    }
+  ],
+  "backupDate": "2025-07-27T13:05:16.344Z",
   "version": "1.0"
 }
