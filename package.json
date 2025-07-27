@@ -3,7 +3,6 @@
   "version": "2.1.0",
   "description": "A beautiful, modern web application for tracking strength training workouts with secure GitHub backup",
   "main": "index.html",
-  "type": "module",
   "scripts": {
     "dev": "python3 -m http.server 8000",
     "start": "python3 -m http.server 8000",
