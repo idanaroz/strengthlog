@@ -1098,9 +1098,8 @@ class StrengthLog {
             </div>
         `;
 
-        // Insert after the GitHub settings header
-        const githubHeader = document.querySelector('h3:contains("GitHub Backup")') ||
-                           Array.from(document.querySelectorAll('h3')).find(h => h.textContent.includes('GitHub Backup'));
+                // Insert after the GitHub settings header
+        const githubHeader = Array.from(document.querySelectorAll('h3')).find(h => h.textContent.includes('GitHub Backup'));
         if (githubHeader && !document.querySelector('.server-managed-notice')) {
             githubHeader.parentNode.insertBefore(serverManagedDiv, githubSettings);
         }
