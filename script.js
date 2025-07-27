@@ -35,15 +35,27 @@ class StrengthLog {
         this.ensureMinimumSets();
     }
 
-    // Data Management
+    // Data Management with Data Protection
     loadData() {
         const savedExercises = localStorage.getItem('strengthlog-exercises');
         const savedWorkouts = localStorage.getItem('strengthlog-workouts');
-        const savedGithubSettings = localStorage.getItem('strengthlog-github-settings');
         const savedLastBackup = localStorage.getItem('strengthlog-last-backup');
 
-        this.exercises = savedExercises ? JSON.parse(savedExercises) : [];
-        this.workouts = savedWorkouts ? JSON.parse(savedWorkouts) : [];
+        // 🛡️ Data Protection: Create backup before loading new data
+        this.createEmergencyBackup();
+
+        try {
+            this.exercises = savedExercises ? JSON.parse(savedExercises) : [];
+            this.workouts = savedWorkouts ? JSON.parse(savedWorkouts) : [];
+
+            // 🔧 Auto-repair any data integrity issues
+            this.validateAndRepairData();
+
+        } catch (error) {
+            console.error('Data loading error:', error);
+            this.showMessage('⚠️ Data recovery initiated due to corrupted storage', 'warn');
+            this.recoverFromBackup();
+        }
 
         // GitHub settings are now server-managed, no need to load from client
         // Keep basic structure for backward compatibility
@@ -54,16 +66,152 @@ class StrengthLog {
         this.lastBackupTime = savedLastBackup ? new Date(savedLastBackup) : null;
     }
 
+    // 🛡️ Emergency backup system
+    createEmergencyBackup() {
+        try {
+            const timestamp = new Date().toISOString();
+            const backupKey = `strengthlog-emergency-backup-${timestamp}`;
+
+            const currentData = {
+                exercises: this.exercises || [],
+                workouts: this.workouts || [],
+                timestamp: timestamp
+            };
+
+            localStorage.setItem(backupKey, JSON.stringify(currentData));
+
+            // Keep only last 3 emergency backups to save space
+            const allKeys = Object.keys(localStorage);
+            const emergencyBackups = allKeys.filter(key => key.startsWith('strengthlog-emergency-backup-'))
+                .sort().reverse();
+
+            if (emergencyBackups.length > 3) {
+                emergencyBackups.slice(3).forEach(key => {
+                    localStorage.removeItem(key);
+                });
+            }
+
+        } catch (error) {
+            console.warn('Could not create emergency backup:', error);
+        }
+    }
+
+    // 🔧 Data validation and repair
+    validateAndRepairData() {
+        let repairsMade = 0;
+
+        // Ensure all workouts have valid exercise references
+        const validExerciseIds = new Set(this.exercises.map(ex => ex.id));
+
+        this.workouts.forEach(workout => {
+            if (!validExerciseIds.has(workout.exerciseId)) {
+                // Try to find exercise by name first
+                const exerciseByName = this.exercises.find(ex =>
+                    ex.name && workout.exerciseName &&
+                    ex.name.toLowerCase() === workout.exerciseName.toLowerCase()
+                );
+
+                if (exerciseByName) {
+                    workout.exerciseId = exerciseByName.id;
+                    repairsMade++;
+                } else {
+                    // Create placeholder exercise
+                    const placeholderExercise = {
+                        id: workout.exerciseId,
+                        name: `📋 Recovered Exercise`,
+                        notes: 'Auto-recovered from workout data',
+                        dateCreated: workout.dateCreated || new Date().toISOString(),
+                        isRecovered: true
+                    };
+                    this.exercises.push(placeholderExercise);
+                    validExerciseIds.add(workout.exerciseId);
+                    repairsMade++;
+                }
+            }
+        });
+
+        if (repairsMade > 0) {
+            console.log(`🔧 Data validation complete: ${repairsMade} repairs made`);
+            this.saveData(); // Save repaired data
+        }
+    }
+
+    // 🆘 Emergency data recovery
+    recoverFromBackup() {
+        try {
+            const allKeys = Object.keys(localStorage);
+            const emergencyBackups = allKeys.filter(key => key.startsWith('strengthlog-emergency-backup-'))
+                .sort().reverse();
+
+            if (emergencyBackups.length > 0) {
+                const latestBackup = localStorage.getItem(emergencyBackups[0]);
+                const backupData = JSON.parse(latestBackup);
+
+                this.exercises = backupData.exercises || [];
+                this.workouts = backupData.workouts || [];
+
+                this.showMessage(`🆘 Data recovered from emergency backup (${new Date(backupData.timestamp).toLocaleString()})`, 'success');
+            } else {
+                // Fallback to empty state
+                this.exercises = [];
+                this.workouts = [];
+                this.showMessage('⚠️ No backup found - starting fresh. Your data may be in GitHub backup.', 'warn');
+            }
+        } catch (error) {
+            console.error('Emergency recovery failed:', error);
+            this.exercises = [];
+            this.workouts = [];
+        }
+    }
+
     saveData() {
-        localStorage.setItem('strengthlog-exercises', JSON.stringify(this.exercises));
-        localStorage.setItem('strengthlog-workouts', JSON.stringify(this.workouts));
-        // GitHub settings no longer saved to localStorage since they're server-managed
-        if (this.lastBackupTime) {
-            localStorage.setItem('strengthlog-last-backup', this.lastBackupTime.toISOString());
+        // 🛡️ Data Protection: Validate before saving
+        if (!this.validateDataBeforeSave()) {
+            console.error('Data validation failed - save aborted');
+            return;
+        }
+
+        try {
+            localStorage.setItem('strengthlog-exercises', JSON.stringify(this.exercises));
+            localStorage.setItem('strengthlog-workouts', JSON.stringify(this.workouts));
+            // GitHub settings no longer saved to localStorage since they're server-managed
+            if (this.lastBackupTime) {
+                localStorage.setItem('strengthlog-last-backup', this.lastBackupTime.toISOString());
+            }
+
+            // Save timestamp of last successful save
+            localStorage.setItem('strengthlog-last-save', new Date().toISOString());
+
+        } catch (error) {
+            console.error('Save failed:', error);
+            this.showMessage('⚠️ Save failed - localStorage might be full', 'error');
+            return;
         }
 
         // Check if auto-backup is needed
         this.checkAutoBackup();
+    }
+
+    // 🛡️ Pre-save validation
+    validateDataBeforeSave() {
+        try {
+            // Check if data is valid JSON serializable
+            JSON.stringify(this.exercises);
+            JSON.stringify(this.workouts);
+
+            // Check data size (localStorage has ~5MB limit)
+            const dataSize = new Blob([JSON.stringify(this.exercises) + JSON.stringify(this.workouts)]).size;
+            if (dataSize > 4 * 1024 * 1024) { // 4MB warning threshold
+                console.warn('Data approaching localStorage size limits:', dataSize, 'bytes');
+                this.showMessage('⚠️ Warning: Data size is large. Consider backing up.', 'warn');
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Data validation failed:', error);
+            this.showMessage('❌ Data validation failed - contains invalid data', 'error');
+            return false;
+        }
     }
 
     ensureDefaultExercises() {
@@ -783,7 +931,13 @@ class StrengthLog {
 
         container.innerHTML = sortedWorkouts.map(workout => {
             const exercise = this.exercises.find(ex => ex.id === workout.exerciseId);
-            const exerciseName = exercise ? exercise.name : 'Unknown Exercise';
+            let exerciseName = exercise ? exercise.name : null;
+
+            // Handle orphaned workouts (exercise was deleted or missing)
+            if (!exerciseName) {
+                exerciseName = `🔍 Missing Exercise (ID: ${workout.exerciseId?.substring(0, 8) || 'unknown'})`;
+                console.warn('Orphaned workout found:', workout.id, 'References missing exercise:', workout.exerciseId);
+            }
 
             return `
                 <div class="history-item">
@@ -1079,9 +1233,45 @@ class StrengthLog {
             }
         });
 
+        // 🔧 Auto-repair orphaned workouts
+        const repairedData = this.repairOrphanedWorkouts(mergedExercises, mergedWorkouts);
+
+        return repairedData;
+    }
+
+    // 🛠️ Auto-repair system for orphaned workouts
+    repairOrphanedWorkouts(exercises, workouts) {
+        const repairedExercises = [...exercises];
+        const exerciseIds = new Set(exercises.map(ex => ex.id));
+        let repairedCount = 0;
+
+        // Find workouts with missing exercises and create placeholder exercises
+        workouts.forEach(workout => {
+            if (!exerciseIds.has(workout.exerciseId)) {
+                // Create a placeholder exercise for the orphaned workout
+                const placeholderExercise = {
+                    id: workout.exerciseId, // Use the same ID the workout expects
+                    name: `📋 Recovered Exercise (${new Date(workout.date).toLocaleDateString()})`,
+                    notes: `Auto-recovered from workout data. Original exercise was missing.`,
+                    dateCreated: workout.dateCreated || new Date().toISOString(),
+                    isRecovered: true
+                };
+
+                repairedExercises.push(placeholderExercise);
+                exerciseIds.add(workout.exerciseId);
+                repairedCount++;
+
+                console.log('🔧 Auto-repaired orphaned workout:', workout.id, 'Created placeholder exercise:', placeholderExercise.name);
+            }
+        });
+
+        if (repairedCount > 0) {
+            this.showMessage(`🔧 Auto-repaired ${repairedCount} orphaned workout(s) by creating placeholder exercises`, 'success');
+        }
+
         return {
-            exercises: mergedExercises,
-            workouts: mergedWorkouts
+            exercises: repairedExercises,
+            workouts: workouts
         };
     }
 
