@@ -1,0 +1,33 @@
+{
+  "exercises": [
+    {
+      "id": "mdloyam1546fjwznbmg",
+      "name": "Right One Hand Assisted Chin Up",
+      "notes": "",
+      "dateCreated": "2025-07-27T13:04:41.017Z"
+    },
+    {
+      "id": "mdloyam1xcz08zfz8vo",
+      "name": "Left One Hand Assisted Chin Up",
+      "notes": "",
+      "dateCreated": "2025-07-27T13:04:41.017Z"
+    }
+  ],
+  "workouts": [
+    {
+      "id": "mdlozyr3thdhjqk0ze",
+      "exerciseId": "mdloyam1xcz08zfz8vo",
+      "date": "2025-07-27",
+      "sets": [
+        {
+          "weight": 5,
+          "reps": 5
+        }
+      ],
+      "notes": "",
+      "dateCreated": "2025-07-27T13:05:58.959Z"
+    }
+  ],
+  "backupDate": "2025-07-27T13:06:04.825Z",
+  "version": "1.0"
+}
