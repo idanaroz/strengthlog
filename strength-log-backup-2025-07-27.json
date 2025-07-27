@@ -1,39 +1,19 @@
 {
   "exercises": [
     {
-      "id": "mdljoi3q0ulac9jh3psg",
-      "name": "One Hand Assisted Chin Up",
-      "notes": "Pull-up variation with assistance for building strength toward one-handed chin-ups",
-      "dateCreated": "2025-07-27T10:37:06.086Z"
-    },
-    {
-      "id": "mdlor6s6x3uzbcisie",
+      "id": "mdloyam1546fjwznbmg",
       "name": "Right One Hand Assisted Chin Up",
       "notes": "",
-      "dateCreated": "2025-07-27T12:59:09.462Z"
+      "dateCreated": "2025-07-27T13:04:41.017Z"
     },
     {
-      "id": "mdlor6s633exz2iew8s",
+      "id": "mdloyam1xcz08zfz8vo",
       "name": "Left One Hand Assisted Chin Up",
       "notes": "",
-      "dateCreated": "2025-07-27T12:59:09.462Z"
+      "dateCreated": "2025-07-27T13:04:41.017Z"
     }
   ],
-  "workouts": [
-    {
-      "id": "mdljoykztaod116djv",
-      "exerciseId": "mdljoi3q0ulac9jh3psg",
-      "date": "2025-07-27",
-      "sets": [
-        {
-          "weight": 3.7,
-          "reps": 1
-        }
-      ],
-      "notes": "rings",
-      "dateCreated": "2025-07-27T10:37:27.443Z"
-    }
-  ],
-  "backupDate": "2025-07-27T13:04:21.633Z",
+  "workouts": [],
+  "backupDate": "2025-07-27T13:04:41.017Z",
   "version": "1.0"
 }
