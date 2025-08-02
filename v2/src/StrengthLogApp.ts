@@ -48,8 +48,9 @@ export class StrengthLogApp {
       // Skip migration - clean start with V2
       console.log('🎯 Starting fresh with V2.0 - no migration needed');
 
-      // Load data
+      // Load data and auto-sync from GitHub
       await this.loadData();
+      await this.autoSyncFromGitHub();
 
       // Initialize analytics engine
       this.analyticsEngine = new AnalyticsEngine(this.exercises, this.workouts);
@@ -77,6 +78,28 @@ export class StrengthLogApp {
     }
   }
 
+  // 📥 Auto-sync from GitHub on app load
+  private async autoSyncFromGitHub(): Promise<void> {
+    try {
+      console.log('📥 Checking for GitHub sync...');
+
+      const restored = await this.dataManager.autoRestoreFromGitHub();
+      if (restored) {
+        // Reload data after restore
+        await this.loadData();
+
+        // Reinitialize analytics with new data
+        this.analyticsEngine = new AnalyticsEngine(this.exercises, this.workouts);
+
+        this.showToast('✅ Data synced from GitHub!', 'success');
+        console.log('📊 GitHub sync completed successfully');
+      }
+    } catch (error) {
+      console.error('❌ GitHub sync failed:', error);
+      // Don't show error toast - sync failure shouldn't disrupt normal usage
+    }
+  }
+
   // 📊 Load all data from storage
   private async loadData(): Promise<void> {
     try {
@@ -101,7 +124,7 @@ export class StrengthLogApp {
   private async ensureDefaultExercises(): Promise<void> {
     if (this.exercises.length > 0) return;
 
-    // Add your specific chin-up exercises as defaults
+    // Your specific chin-up exercises (no generic version)
     const defaultExercises = [
       {
         name: 'Right One Hand Assisted Chin Up',
@@ -111,25 +134,11 @@ export class StrengthLogApp {
         notes: 'Right side assisted chin-up for balanced strength development'
       },
       {
-        name: 'Left One Hand Assisted Chin Up', 
+        name: 'Left One Hand Assisted Chin Up',
         category: ExerciseCategory.PULL,
         muscleGroups: [MuscleGroup.BACK, MuscleGroup.BICEPS],
         equipmentType: EquipmentType.BODYWEIGHT,
         notes: 'Left side assisted chin-up for balanced strength development'
-      },
-      {
-        name: 'Push-ups',
-        category: ExerciseCategory.PUSH,
-        muscleGroups: [MuscleGroup.CHEST, MuscleGroup.TRICEPS, MuscleGroup.SHOULDERS],
-        equipmentType: EquipmentType.BODYWEIGHT,
-        notes: 'Classic bodyweight chest exercise'
-      },
-      {
-        name: 'Squats',
-        category: ExerciseCategory.LEGS,
-        muscleGroups: [MuscleGroup.QUADRICEPS, MuscleGroup.GLUTES],
-        equipmentType: EquipmentType.BODYWEIGHT,
-        notes: 'Fundamental leg exercise'
       }
     ];
 
@@ -169,13 +178,17 @@ export class StrengthLogApp {
               <span class="version">v2.0</span>
             </h1>
             <div class="header-actions">
-              <button class="header-btn" id="feedback-btn" title="Send Feedback">
-                <span class="feedback-icon">💭</span>
-                <span class="feedback-text">Beta Feedback</span>
+              <button class="header-btn" id="sync-setup-btn" title="Setup GitHub Sync">
+                <span class="sync-icon">☁️</span>
+                <span class="sync-text">Setup Sync</span>
               </button>
               <button class="header-btn" id="sync-status">
                 <span class="sync-icon">🔄</span>
-                <span class="sync-text">Synced</span>
+                <span class="sync-text">Auto-Sync</span>
+              </button>
+              <button class="header-btn" id="feedback-btn" title="Send Feedback">
+                <span class="feedback-icon">💭</span>
+                <span class="feedback-text">Beta</span>
               </button>
               <button class="header-btn" id="settings-btn">⚙️</button>
             </div>
@@ -410,6 +423,10 @@ export class StrengthLogApp {
 
       if (target.id === 'feedback-btn') {
         this.showFeedbackModal();
+      }
+
+      if (target.id === 'sync-setup-btn') {
+        this.showGitHubSyncSetup();
       }
     });
 
@@ -663,7 +680,7 @@ export class StrengthLogApp {
     };
   }
 
-  
+
 
   // 🧪 Initialize beta features
   private async initializeBetaFeatures(): Promise<void> {
@@ -810,5 +827,120 @@ export class StrengthLogApp {
     link.rel = 'stylesheet';
     link.href = 'src/styles/feedback-modal.css';
     document.head.appendChild(link);
+  }
+
+  // ☁️ Show GitHub sync setup modal
+  private showGitHubSyncSetup(): void {
+    const status = this.dataManager.getGitHubSyncStatus();
+    const instructions = this.dataManager.getGitHubSetupInstructions();
+
+    const modal = document.createElement('div');
+    modal.className = 'sync-setup-overlay';
+    modal.innerHTML = `
+      <div class="sync-setup-modal">
+        <div class="sync-header">
+          <h2>☁️ GitHub Auto-Sync Setup</h2>
+          <p>Automatically sync your workouts across all devices</p>
+          <button class="close-btn" id="sync-close">&times;</button>
+        </div>
+
+        <div class="sync-content">
+          <div class="sync-status">
+            <h3>Current Status</h3>
+            <div class="status-item">
+              <span>📱 Device ID:</span> <code>${status.deviceId}</code>
+            </div>
+            <div class="status-item">
+              <span>☁️ Configured:</span>
+              <span class="status-${status.configured ? 'good' : 'pending'}">
+                ${status.configured ? '✅ Yes' : '⚠️ Not configured'}
+              </span>
+            </div>
+            <div class="status-item">
+              <span>🔄 Last Sync:</span>
+              <span>${status.lastSync ? new Date(status.lastSync).toLocaleString() : 'Never'}</span>
+            </div>
+          </div>
+
+          ${!status.configured ? `
+            <div class="setup-form">
+              <h3>Setup Instructions</h3>
+              <div class="instructions">
+                <p><strong>Step 1:</strong> Go to <a href="https://github.com/settings/tokens" target="_blank">GitHub → Settings → Personal Access Tokens</a></p>
+                <p><strong>Step 2:</strong> Generate new token (classic) with <code>repo</code> permissions</p>
+                <p><strong>Step 3:</strong> Enter your details below:</p>
+              </div>
+
+              <form id="sync-setup-form">
+                <div class="form-group">
+                  <label for="github-owner">GitHub Username</label>
+                  <input type="text" id="github-owner" placeholder="yourusername" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="github-repo">Repository Name</label>
+                  <input type="text" id="github-repo" placeholder="strengthlog" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="github-token">Personal Access Token</label>
+                  <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxx" required>
+                  <small>Keep this secure! It will be stored locally only.</small>
+                </div>
+
+                <button type="submit" class="setup-btn">🚀 Setup Auto-Sync</button>
+              </form>
+            </div>
+          ` : `
+            <div class="sync-actions">
+              <button class="action-btn" id="force-backup">📤 Force Backup Now</button>
+              <button class="action-btn" id="force-restore">📥 Force Restore Now</button>
+              <button class="action-btn danger" id="clear-sync">🗑️ Clear Sync Config</button>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listeners
+    modal.querySelector('#sync-close')?.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+
+    if (!status.configured) {
+      modal.querySelector('#sync-setup-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target as HTMLFormElement);
+
+        const owner = formData.get('github-owner') as string;
+        const repo = formData.get('github-repo') as string;
+        const token = formData.get('github-token') as string;
+
+        try {
+          this.dataManager.setupGitHubSync(owner, repo, token);
+          document.body.removeChild(modal);
+          this.showToast('✅ GitHub sync configured! Auto-backup will start with your next workout.', 'success');
+        } catch (error) {
+          this.showToast('❌ Sync setup failed. Please check your credentials.', 'error');
+        }
+      });
+    } else {
+      modal.querySelector('#force-backup')?.addEventListener('click', async () => {
+        try {
+          await this.dataManager.setupGitHubSync('', '', ''); // Force backup with existing config
+          this.showToast('✅ Backup completed!', 'success');
+        } catch (error) {
+          this.showToast('❌ Backup failed.', 'error');
+        }
+      });
+
+      modal.querySelector('#clear-sync')?.addEventListener('click', () => {
+        localStorage.removeItem('github-sync-config');
+        document.body.removeChild(modal);
+        this.showToast('🗑️ Sync configuration cleared', 'info');
+      });
+    }
   }
 }

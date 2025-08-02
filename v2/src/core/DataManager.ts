@@ -1,6 +1,7 @@
 // 💾 Advanced Data Management - SQLite + Cloud Sync
 
 import { openDB, type IDBPDatabase } from 'idb';
+import { GitHubSyncManager } from './GitHubSyncManager.js';
 import type {
   Exercise,
   WorkoutSession,
@@ -32,6 +33,7 @@ interface DBSchema {
 
 export class DataManager {
   private db: IDBPDatabase<DBSchema> | null = null;
+  private githubSync: GitHubSyncManager;
   private syncStatus: SyncStatus = {
     lastSync: new Date().toISOString(),
     pendingChanges: 0,
@@ -39,6 +41,10 @@ export class DataManager {
     backupEnabled: true,
     conflictCount: 0
   };
+
+  constructor() {
+    this.githubSync = new GitHubSyncManager();
+  }
 
   // 🚀 Initialize database with automatic migrations
   async initialize(): Promise<void> {
@@ -205,13 +211,16 @@ export class DataManager {
     };
   }
 
-  // 💪 Exercise CRUD operations
+  // 💪 Exercise CRUD operations with auto-backup
   async saveExercise(exercise: Exercise): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
     await this.db.put('exercises', exercise);
     await this.logSyncAction('exercise_save', exercise.id);
     this.syncStatus.pendingChanges++;
+
+    // Auto-backup to GitHub after save
+    await this.autoBackupToGitHub();
   }
 
   async getExercise(id: string): Promise<Exercise | undefined> {
@@ -238,7 +247,7 @@ export class DataManager {
     this.syncStatus.pendingChanges++;
   }
 
-  // 🏋️ Workout CRUD operations
+  // 🏋️ Workout CRUD operations with auto-backup
   async saveWorkout(workout: WorkoutSession): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
@@ -248,6 +257,9 @@ export class DataManager {
 
     // Update exercise statistics
     await this.updateExerciseStats(workout);
+
+    // Auto-backup to GitHub after save
+    await this.autoBackupToGitHub();
   }
 
   async getWorkout(id: string): Promise<WorkoutSession | undefined> {
@@ -450,6 +462,90 @@ export class DataManager {
   // 📊 Get sync status
   getSyncStatus(): SyncStatus {
     return { ...this.syncStatus };
+  }
+
+    // ☁️ Auto-backup to GitHub after any save
+  private async autoBackupToGitHub(): Promise<void> {
+    try {
+      if (!this.githubSync.isConfigured()) {
+        console.log('ℹ️ GitHub sync not configured - skipping auto-backup');
+        return;
+      }
+
+      const exercises = await this.getAllExercises();
+      const workouts = await this.getAllWorkouts();
+
+      const success = await this.githubSync.autoBackup(exercises, workouts);
+      if (success) {
+        this.syncStatus.lastSync = new Date().toISOString();
+        this.syncStatus.pendingChanges = 0;
+      }
+    } catch (error) {
+      console.error('❌ Auto-backup failed:', error);
+      // Don't throw - backup failure shouldn't break normal app flow
+    }
+  }
+
+  // 📥 Auto-restore from GitHub on app load
+  async autoRestoreFromGitHub(): Promise<boolean> {
+    try {
+      if (!this.githubSync.isConfigured()) {
+        console.log('ℹ️ GitHub sync not configured - using local data only');
+        return false;
+      }
+
+      const cloudData = await this.githubSync.autoRestore();
+      if (!cloudData) {
+        console.log('ℹ️ No cloud data to restore');
+        return false;
+      }
+
+      console.log('📥 Restoring data from GitHub...');
+
+      // Replace local data with cloud data
+      if (!this.db) throw new Error('Database not initialized');
+
+      // Clear existing data
+      await Promise.all([
+        this.db.clear('exercises'),
+        this.db.clear('workouts')
+      ]);
+
+      // Add cloud data
+      const tx = this.db.transaction(['exercises', 'workouts'], 'readwrite');
+
+      for (const exercise of cloudData.exercises) {
+        await tx.objectStore('exercises').put(exercise);
+      }
+
+      for (const workout of cloudData.workouts) {
+        await tx.objectStore('workouts').put(workout);
+      }
+
+      await tx.done;
+
+      console.log(`✅ Restored ${cloudData.exercises.length} exercises and ${cloudData.workouts.length} workouts from GitHub`);
+      return true;
+    } catch (error) {
+      console.error('❌ Auto-restore failed:', error);
+      return false;
+    }
+  }
+
+  // 🔧 Setup GitHub sync
+  setupGitHubSync(owner: string, repo: string, token: string): void {
+    this.githubSync.setupSync(owner, repo, token);
+    console.log('✅ GitHub sync configured');
+  }
+
+  // 📊 Get GitHub sync status
+  getGitHubSyncStatus() {
+    return this.githubSync.getSyncStatus();
+  }
+
+  // 🔐 Get GitHub setup instructions
+  getGitHubSetupInstructions(): string {
+    return this.githubSync.getSetupInstructions();
   }
 
   // 🧹 Clear all data (for migration rollback)
