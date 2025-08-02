@@ -107,7 +107,7 @@ file:///Users/inarotzki/src/strengthLog/index.html
 ## 📋 **תרחיש deployment מלא (צעד אחר צעד)**
 
 ### **🎯 דוגמה עם GitHub Pages:**
-
+ 
 #### **Step 1: Preparation**
 ```bash
 cd /Users/inarotzki/src/strengthLog
@@ -202,7 +202,7 @@ Settings → Import Data → Select your backup file
 
 ---
 
-## 🤔 **שאלות נפוצות:**
+## 🤔 **Frequest questions:**
 
 **Q: If I deploy, will my data be deleted?**
 A: No! Data is in your browser, not in the website files.

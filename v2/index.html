@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StrengthLog V2.0 - Advanced Strength Training Tracker</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Advanced strength training tracker with progression analytics, workout logging, and comprehensive progress tracking.">
+    <meta name="keywords" content="strength training, workout tracker, fitness, progression, analytics">
+    <meta name="author" content="StrengthLog">
+
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="StrengthLog V2.0 - Advanced Strength Training Tracker">
+    <meta property="og:description" content="Track your strength training progress with advanced analytics and beautiful visualizations.">
+    <meta property="og:type" content="website">
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/styles/main.css">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#3b82f6">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="StrengthLog">
+</head>
+<body>
+    <!-- App will be mounted here -->
+    <div id="app">
+        <!-- Loading screen -->
+        <div class="loading-screen">
+            <div class="loading-logo">
+                <div class="logo-icon">🏋️</div>
+                <h1>StrengthLog</h1>
+                <div class="version-badge">v2.0</div>
+            </div>
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Initializing your strength training companion...</p>
+        </div>
+    </div>
+
+    <!-- Error Boundary -->
+    <div id="error-boundary" class="hidden">
+        <div class="error-container">
+            <div class="error-icon">⚠️</div>
+            <h2>Something went wrong</h2>
+            <p class="error-message">We encountered an unexpected error. Please refresh the page to try again.</p>
+            <div class="error-actions">
+                <button onclick="window.location.reload()" class="primary-btn">
+                    🔄 Refresh Page
+                </button>
+                <button onclick="localStorage.clear(); window.location.reload()" class="secondary-btn">
+                    🗑️ Reset App Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        // Error handling
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+            showErrorBoundary(event.error.message);
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+            showErrorBoundary('An unexpected error occurred');
+        });
+
+        function showErrorBoundary(message) {
+            const errorBoundary = document.getElementById('error-boundary');
+            const errorMessage = errorBoundary.querySelector('.error-message');
+
+            errorMessage.textContent = message || 'An unexpected error occurred';
+            errorBoundary.classList.remove('hidden');
+
+            // Hide the main app
+            const app = document.getElementById('app');
+            app.style.display = 'none';
+        }
+
+        // Initialize app
+        import('./src/StrengthLogApp.js').then((module) => {
+            const StrengthLogApp = module.StrengthLogApp;
+            const app = new StrengthLogApp();
+
+            app.initialize().then(() => {
+                // Hide loading screen
+                const loadingScreen = document.querySelector('.loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.remove();
+                }
+            }).catch((error) => {
+                console.error('Failed to initialize app:', error);
+                showErrorBoundary('Failed to initialize the application');
+            });
+        }).catch((error) => {
+            console.error('Failed to load app:', error);
+            showErrorBoundary('Failed to load the application');
+        });
+
+        // Service Worker Registration (for PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
+    <style>
+        /* Loading Screen Styles */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 9999;
+        }
+
+        .loading-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        .loading-logo h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .loading-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            margin-top: 1rem;
+            animation: fadeInOut 2s infinite;
+        }
+
+        /* Error Boundary Styles */
+        .error-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffffff;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .error-container h2 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .error-container .error-message {
+            color: #6b7280;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Responsive loading screen */
+        @media (max-width: 768px) {
+            .loading-logo h1 {
+                font-size: 2rem;
+            }
+
+            .logo-icon {
+                font-size: 3rem;
+            }
+
+            .error-container {
+                padding: 1.5rem;
+            }
+
+            .error-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</body>
+</html>

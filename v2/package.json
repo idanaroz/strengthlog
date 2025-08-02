@@ -1,0 +1,41 @@
+{
+  "name": "strength-log-v2",
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint . --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "sw:build": "workbox generateSW workbox-config.js",
+    "analyze": "vite-bundle-analyzer dist/stats.html",
+    "deploy": "npm run build && npm run preview"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "date-fns": "^2.30.0",
+    "idb": "^7.1.1",
+    "lucide": "^0.263.1",
+    "sql.js": "^1.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.0",
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "@vitest/coverage-v8": "^0.34.3",
+    "@vitest/ui": "^0.34.3",
+    "eslint": "^8.47.0",
+    "jsdom": "^22.1.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.1.6",
+    "vite": "^4.4.9",
+    "vite-bundle-analyzer": "^0.7.0",
+    "vitest": "^0.34.3",
+    "workbox-cli": "^7.0.0"
+  }
+}
