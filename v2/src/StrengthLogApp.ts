@@ -2,7 +2,6 @@
 
 import { DataManager } from '@core/DataManager.js';
 import { AnalyticsEngine } from '@core/AnalyticsEngine.js';
-import { MigrationManager } from '@core/MigrationManager.js';
 import { BetaManager } from '@core/BetaManager.js';
 import { ProgressionChart } from '@components/ProgressionChart.js';
 import { WorkoutForm } from '@components/WorkoutForm.js';
@@ -19,7 +18,6 @@ import type {
 
 export class StrengthLogApp {
   private dataManager: DataManager;
-  private migrationManager: MigrationManager;
   private betaManager: BetaManager;
   private analyticsEngine: AnalyticsEngine | null = null;
   private exercises: Exercise[] = [];
@@ -34,7 +32,6 @@ export class StrengthLogApp {
 
   constructor() {
     this.dataManager = new DataManager();
-    this.migrationManager = new MigrationManager(this.dataManager);
     this.betaManager = new BetaManager();
     this.settings = this.getDefaultSettings();
     this.appState = this.getDefaultAppState();
@@ -48,8 +45,8 @@ export class StrengthLogApp {
             // Initialize data layer
       await this.dataManager.initialize();
 
-      // Perform V1 to V2 migration if needed
-      await this.performMigrationIfNeeded();
+      // Skip migration - clean start with V2
+      console.log('🎯 Starting fresh with V2.0 - no migration needed');
 
       // Load data
       await this.loadData();
@@ -100,11 +97,26 @@ export class StrengthLogApp {
     }
   }
 
-  // 🏋️ Ensure default exercises exist for new users
+  // 🏋️ Ensure your preferred exercises exist
   private async ensureDefaultExercises(): Promise<void> {
     if (this.exercises.length > 0) return;
 
+    // Add your specific chin-up exercises as defaults
     const defaultExercises = [
+      {
+        name: 'Right One Hand Assisted Chin Up',
+        category: ExerciseCategory.PULL,
+        muscleGroups: [MuscleGroup.BACK, MuscleGroup.BICEPS],
+        equipmentType: EquipmentType.BODYWEIGHT,
+        notes: 'Right side assisted chin-up for balanced strength development'
+      },
+      {
+        name: 'Left One Hand Assisted Chin Up', 
+        category: ExerciseCategory.PULL,
+        muscleGroups: [MuscleGroup.BACK, MuscleGroup.BICEPS],
+        equipmentType: EquipmentType.BODYWEIGHT,
+        notes: 'Left side assisted chin-up for balanced strength development'
+      },
       {
         name: 'Push-ups',
         category: ExerciseCategory.PUSH,
@@ -113,25 +125,11 @@ export class StrengthLogApp {
         notes: 'Classic bodyweight chest exercise'
       },
       {
-        name: 'Pull-ups',
-        category: ExerciseCategory.PULL,
-        muscleGroups: [MuscleGroup.BACK, MuscleGroup.BICEPS],
-        equipmentType: EquipmentType.BODYWEIGHT,
-        notes: 'Upper body pulling exercise'
-      },
-      {
         name: 'Squats',
         category: ExerciseCategory.LEGS,
         muscleGroups: [MuscleGroup.QUADRICEPS, MuscleGroup.GLUTES],
         equipmentType: EquipmentType.BODYWEIGHT,
         notes: 'Fundamental leg exercise'
-      },
-      {
-        name: 'Plank',
-        category: ExerciseCategory.CORE,
-        muscleGroups: [MuscleGroup.CORE],
-        equipmentType: EquipmentType.BODYWEIGHT,
-        notes: 'Isometric core strengthening'
       }
     ];
 
@@ -665,29 +663,7 @@ export class StrengthLogApp {
     };
   }
 
-  // 🔄 Perform V1 to V2 migration if needed
-  private async performMigrationIfNeeded(): Promise<void> {
-    try {
-      console.log('🔄 Checking for V1 data migration...');
-
-      const migrationResult = await this.migrationManager.migrateFromV1();
-
-      if (migrationResult.success && migrationResult.migratedExercises > 0) {
-        this.showToast(
-          `✅ Successfully migrated ${migrationResult.migratedExercises} exercises and ${migrationResult.migratedWorkouts} workouts from V1!`,
-          'success'
-        );
-        console.log('📊 Migration statistics:', migrationResult);
-      } else if (migrationResult.errors.length > 0) {
-        console.error('❌ Migration errors:', migrationResult.errors);
-        this.showToast('⚠️ Migration completed with some issues. Check console for details.', 'error');
-      }
-
-    } catch (error) {
-      console.error('❌ Migration failed:', error);
-      this.showToast('❌ Failed to migrate V1 data. Please check console for details.', 'error');
-    }
-  }
+  
 
   // 🧪 Initialize beta features
   private async initializeBetaFeatures(): Promise<void> {
