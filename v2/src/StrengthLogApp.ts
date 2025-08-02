@@ -6,15 +6,18 @@ import { BetaManager } from '@core/BetaManager.js';
 import { ProgressionChart } from '@components/ProgressionChart.js';
 import { WorkoutForm } from '@components/WorkoutForm.js';
 import { FeedbackModal } from '@components/FeedbackModal.js';
+import { ExerciseGraph, type ExerciseProgressionData } from '@components/ExerciseGraph.js';
 import type {
   Exercise,
   WorkoutSession,
   UserSettings,
-  AppState,
+  AppState
+} from '../types/index.js';
+import {
   ExerciseCategory,
   MuscleGroup,
   EquipmentType
-} from '@types/index.js';
+} from '../types/index.js';
 
 export class StrengthLogApp {
   private dataManager: DataManager;
@@ -29,6 +32,7 @@ export class StrengthLogApp {
   private workoutForm: WorkoutForm | null = null;
   private progressionChart: ProgressionChart | null = null;
   private feedbackModal: FeedbackModal | null = null;
+  private exerciseGraphs: Map<string, ExerciseGraph> = new Map();
 
   constructor() {
     this.dataManager = new DataManager();
@@ -242,6 +246,7 @@ export class StrengthLogApp {
 
     // Load feedback modal styles
     this.loadFeedbackStyles();
+    this.loadExerciseGraphStyles();
   }
 
   // 🔧 Initialize UI components
@@ -427,6 +432,17 @@ export class StrengthLogApp {
 
       if (target.id === 'sync-setup-btn') {
         this.showGitHubSyncSetup();
+      }
+
+      // Handle workout action buttons
+      if (target.classList.contains('action-btn')) {
+        const action = target.dataset.action;
+        const workoutId = target.dataset.id;
+        const exerciseId = target.dataset.exerciseId;
+        
+        if (action) {
+          this.handleWorkoutAction(action, workoutId, exerciseId);
+        }
       }
     });
 
@@ -829,6 +845,14 @@ export class StrengthLogApp {
     document.head.appendChild(link);
   }
 
+  // 🎨 Load exercise graph styles
+  private loadExerciseGraphStyles(): void {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'src/styles/exercise-graph.css';
+    document.head.appendChild(link);
+  }
+
   // ☁️ Show GitHub sync setup modal
   private showGitHubSyncSetup(): void {
     const status = this.dataManager.getGitHubSyncStatus();
@@ -941,6 +965,179 @@ export class StrengthLogApp {
         document.body.removeChild(modal);
         this.showToast('🗑️ Sync configuration cleared', 'info');
       });
+    }
+  }
+
+  // 📊 Exercise Graph Methods
+
+  // Create exercise progression data
+  private createExerciseProgressionData(exerciseId: string): ExerciseProgressionData | null {
+    const exercise = this.exercises.find(e => e.id === exerciseId);
+    if (!exercise) return null;
+
+    const exerciseWorkouts = this.workouts.filter(w =>
+      w.exercises.some(e => e.exerciseId === exerciseId)
+    ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    if (exerciseWorkouts.length === 0) return null;
+
+    const data: ExerciseProgressionData = {
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      dates: [],
+      weights: [],
+      reps: [],
+      volumes: [],
+      estimatedMaxes: [],
+      averageRPE: [],
+      totalSets: []
+    };
+
+    exerciseWorkouts.forEach(workout => {
+      const exerciseData = workout.exercises.find(e => e.exerciseId === exerciseId);
+      if (!exerciseData) return;
+
+      data.dates.push(workout.date);
+
+      // Calculate metrics from sets
+      const sets = exerciseData.sets;
+      const maxWeight = Math.max(...sets.map(s => s.weight));
+      const maxReps = Math.max(...sets.map(s => s.reps));
+      const totalVolume = sets.reduce((sum, s) => sum + (s.weight * s.reps), 0);
+      const avgRPE = sets.length > 0 ?
+        sets.reduce((sum, s) => sum + (s.rpe || 0), 0) / sets.length : 0;
+
+      // Estimate 1RM using Epley formula: weight × (1 + reps/30)
+      const estimated1RM = Math.max(...sets.map(s =>
+        s.weight * (1 + s.reps / 30)
+      ));
+
+      data.weights.push(maxWeight);
+      data.reps.push(maxReps);
+      data.volumes.push(totalVolume);
+      data.estimatedMaxes.push(Math.round(estimated1RM * 10) / 10);
+      data.averageRPE.push(Math.round(avgRPE * 10) / 10);
+      data.totalSets.push(sets.length);
+    });
+
+    return data;
+  }
+
+  // Show exercise graph in modal
+  private showExerciseGraph(exerciseId: string): void {
+    const progressionData = this.createExerciseProgressionData(exerciseId);
+    if (!progressionData) {
+      this.showToast('No workout data found for this exercise', 'info');
+      return;
+    }
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'exercise-graph-modal-overlay';
+    modal.innerHTML = `
+      <div class="exercise-graph-modal">
+        <div class="modal-header">
+          <h2>📊 ${progressionData.exerciseName} Progression</h2>
+          <button class="close-btn" id="graph-close">&times;</button>
+        </div>
+
+        <div class="modal-content">
+          <div id="exercise-graph-container" class="exercise-graph-container">
+            <!-- Graph will be inserted here -->
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Create and render graph
+    try {
+      const graph = new ExerciseGraph('exercise-graph-container');
+      graph.render(progressionData, 'weight'); // Start with weight metric
+
+      // Store graph reference for cleanup
+      this.exerciseGraphs.set(exerciseId, graph);
+
+      console.log(`📊 Exercise graph displayed for ${progressionData.exerciseName}`);
+    } catch (error) {
+      console.error('❌ Failed to create exercise graph:', error);
+      this.showToast('Failed to create graph. Please try again.', 'error');
+    }
+
+    // Event listeners
+    modal.querySelector('#graph-close')?.addEventListener('click', () => {
+      // Cleanup graph
+      const graph = this.exerciseGraphs.get(exerciseId);
+      if (graph) {
+        graph.destroy();
+        this.exerciseGraphs.delete(exerciseId);
+      }
+      document.body.removeChild(modal);
+    });
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.querySelector('#graph-close')?.click();
+      }
+    });
+  }
+
+  // Refresh exercise graph with new data
+  private refreshExerciseGraph(exerciseId: string): void {
+    const graph = this.exerciseGraphs.get(exerciseId);
+    if (!graph) return;
+
+    const progressionData = this.createExerciseProgressionData(exerciseId);
+    if (progressionData) {
+      graph.render(progressionData, 'weight');
+      console.log(`🔄 Exercise graph refreshed for ${progressionData.exerciseName}`);
+    }
+  }
+
+  // Handle workout action buttons (including graph button)
+  private handleWorkoutAction(action: string, workoutId?: string, exerciseId?: string): void {
+    switch (action) {
+      case 'show-graph':
+        if (exerciseId) {
+          this.showExerciseGraph(exerciseId);
+        }
+        break;
+      case 'edit':
+        if (workoutId) {
+          this.editWorkout(workoutId);
+        }
+        break;
+      case 'delete':
+        if (workoutId) {
+          this.deleteWorkout(workoutId);
+        }
+        break;
+      default:
+        console.warn(`Unknown workout action: ${action}`);
+    }
+  }
+
+  // 🔧 Placeholder methods for edit/delete functionality
+  private editWorkout(workoutId: string): void {
+    console.log(`Edit workout: ${workoutId}`);
+    this.showToast('Edit functionality coming soon!', 'info');
+  }
+
+  private deleteWorkout(workoutId: string): void {
+    if (confirm('Are you sure you want to delete this workout?')) {
+      const workoutIndex = this.workouts.findIndex(w => w.id === workoutId);
+      if (workoutIndex >= 0) {
+        this.workouts.splice(workoutIndex, 1);
+        this.dataManager.deleteWorkout(workoutId);
+        this.showToast('Workout deleted successfully', 'success');
+        
+        // Refresh view
+        if (this.appState.currentView === 'history') {
+          this.showView('history');
+        }
+      }
     }
   }
 }

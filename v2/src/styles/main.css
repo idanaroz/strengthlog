@@ -106,7 +106,7 @@ body {
   flex-direction: column;
 }
 
-/* 🎯 Header */
+/* 🎯 Header - Enhanced Sticky */
 .app-header {
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
@@ -114,6 +114,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .header-content {
@@ -172,7 +174,7 @@ body {
   color: var(--primary-color);
 }
 
-/* 🧭 Navigation */
+/* 🧭 Navigation - Sticky with Header */
 .app-nav {
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
@@ -182,6 +184,11 @@ body {
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  position: sticky;
+  top: 80px; /* Below header */
+  z-index: 99;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .app-nav::-webkit-scrollbar {
